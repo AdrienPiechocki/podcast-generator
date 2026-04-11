@@ -239,14 +239,24 @@ Format OBLIGATOIRE :
     parties = extraire_liste_balises(brut, "PARTIE")
 
     if not parties:
-        log.warning("Extraction plan échouée, fallback sur lignes")
-        parties = [
-            nettoyer_titre(l)
-            for l in brut.split("\n")
-            if l.strip() and len(l.strip()) < 80
-        ]
+        log.debug("Extraction plan échouée (fallback actif)")
+        lignes = [l.strip() for l in brut.split("\n") if l.strip()]
+        parties = []
+        for l in lignes:
+            # [PARTIE]Titre</PARTIE] ou [PARTIE]Titre[/PARTIE]
+            m = re.match(r'\[PARTIE\](.+?)(?:\[/?|</)PARTIE\]?', l, re.IGNORECASE)
+            if m:
+                parties.append(m.group(1).strip())
+                continue
+            # Titre</PARTIE] — balise ouvrante manquante
+            m = re.match(r'^(.+?)(?:\[/?|</)PARTIE\]?\s*$', l, re.IGNORECASE)
+            if m and len(m.group(1)) > 3:
+                parties.append(m.group(1).strip())
+                continue
 
-    parties = [p.split("\n")[0][:60] for p in parties if p]
+    # Nettoyage résidus de balises dans tous les cas
+    parties = [re.sub(r'</?\w+>|\[/?\w+\]?', '', p).strip() for p in parties]
+    parties = [p.split("\n")[0][:60] for p in parties if p.strip()]
 
     if len(parties) < 2:
         log.warning("Plan trop court, utilisation du plan par défaut")
@@ -431,10 +441,12 @@ def nettoyer_titre(titre: str) -> str:
 # 🔊 Piper TTS
 # ---------------------------
 
+# Cherche les modèles dans /app/models (Docker) puis dans le répertoire courant
+_MODELS_DIR = "/app/models" if os.path.isdir("/app/models") else "."
 VOIX_PIPER = [
-    "fr_FR-siwis-medium.onnx",
-    "fr_FR-mls-medium.onnx",
-    "fr_FR-gilles-low.onnx",
+    os.path.join(_MODELS_DIR, "fr_FR-siwis-medium.onnx"),
+    os.path.join(_MODELS_DIR, "fr_FR-mls-medium.onnx"),
+    os.path.join(_MODELS_DIR, "fr_FR-gilles-low.onnx"),
 ]
 
 def trouver_modele_piper() -> Optional[str]:
@@ -488,13 +500,15 @@ def creer_podcast(sujet: Optional[str] = None) -> Optional[str]:
     contenu = nettoyer_texte(contenu_brut)
 
     # Sauvegarde du texte (utile pour debug)
-    texte_file = "podcast_texte.txt"
+    _output_dir = "/app/output" if os.path.isdir("/app/output") else "."
+    texte_file = os.path.join(_output_dir, "podcast_texte.txt")
     with open(texte_file, "w", encoding="utf-8") as f:
         f.write(f"SUJET : {sujet}\n\n{contenu}")
     log.info(f"📄 Texte sauvegardé : {texte_file}")
 
     log.info("🎙️ Génération audio...")
-    fichier_audio = generer_audio(contenu)
+    audio_path = os.path.join(_output_dir, "podcast.wav")
+    fichier_audio = generer_audio(contenu, output_file=audio_path)
 
     if fichier_audio:
         log.info(f"\n✅ Podcast généré : {fichier_audio}")
