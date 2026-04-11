@@ -33,6 +33,12 @@ tar -xzf piper_linux_x86_64.tar.gz
 sudo mv piper/piper-tts /usr/local/bin/
 ```
 
+Si comme moi, vous etes sur ArchLinux, vous pouvez passer par l'AUR :
+
+```bash
+yay -S piper-tts
+```
+
 > **Note :** le modèle de voix (`fr_FR-siwis-medium.onnx`) est téléchargé automatiquement par `run.sh` au premier lancement.
 
 ---
@@ -40,7 +46,7 @@ sudo mv piper/piper-tts /usr/local/bin/
 ## Installation
 
 ```bash
-git clone <url-du-repo>
+git clone https://github.com/AdrienPiechocki/podcast-generator.git
 cd podcast-generator
 chmod +x run.sh
 ```
