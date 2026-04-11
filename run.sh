@@ -1,22 +1,22 @@
 #!/usr/bin/env bash
 # ---------------------------------------------------------------------------
-# run.sh — Lance le générateur de podcast
-# Usage :
-#   ./run.sh                        # sujet aléatoire
-#   ./run.sh "Linux et la sécurité" # sujet personnalisé
+# run.sh — Launch the podcast generator
+# Usage:
+#   ./run.sh                          # random topic
+#   ./run.sh "Linux and security"     # custom topic
+#   ./run.sh --lang en "Open Source"  # custom language + topic
 # ---------------------------------------------------------------------------
-
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# ---------- Couleurs (désactivées si pas de terminal) ----------------------
+# ---------- Colors (disabled if not a terminal) ----------------------------
 if [ -t 1 ]; then
-  RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
-  CYAN='\033[0;36m'; NC='\033[0m'
+    RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
+    CYAN='\033[0;36m'; NC='\033[0m'
 else
-  RED=''; GREEN=''; YELLOW=''; CYAN=''; NC=''
+    RED=''; GREEN=''; YELLOW=''; CYAN=''; NC=''
 fi
 
 log()  { echo -e "${CYAN}[run]${NC} $*"; }
@@ -27,86 +27,101 @@ err()  { echo -e "${RED}[err]${NC}  $*" >&2; }
 # ---------- Python ---------------------------------------------------------
 PYTHON=""
 for candidate in python3 python; do
-  if command -v "$candidate" &>/dev/null; then
-    PYTHON="$candidate"
-    break
-  fi
+    if command -v "$candidate" &>/dev/null; then
+        PYTHON="$candidate"
+        break
+    fi
 done
 
 if [ -z "$PYTHON" ]; then
-  err "Python introuvable. Installez Python 3.9+."
-  exit 1
+    err "Python not found. Please install Python 3.9+."
+    exit 1
 fi
 
 PYTHON_VERSION=$("$PYTHON" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
-log "Python détecté : $PYTHON ($PYTHON_VERSION)"
+log "Python detected: $PYTHON ($PYTHON_VERSION)"
 
-# ---------- Environnement virtuel ------------------------------------------
+# ---------- Virtual environment --------------------------------------------
 VENV_DIR="$SCRIPT_DIR/.venv"
-
 if [ ! -d "$VENV_DIR" ]; then
-  log "Création de l'environnement virtuel..."
-  "$PYTHON" -m venv "$VENV_DIR"
+    log "Creating virtual environment..."
+    "$PYTHON" -m venv "$VENV_DIR"
 fi
 
-# Active le venv
+# Activate the venv
 # shellcheck disable=SC1091
 source "$VENV_DIR/bin/activate"
 
-# ---------- Dépendances Python ---------------------------------------------
+# ---------- Python dependencies --------------------------------------------
 if [ -f "$SCRIPT_DIR/requirements.txt" ]; then
-  log "Installation / vérification des dépendances..."
-  pip install --quiet --upgrade pip
-  pip install --quiet -r "$SCRIPT_DIR/requirements.txt"
-  ok "Dépendances OK"
+    log "Installing / verifying dependencies..."
+    pip install --quiet --upgrade pip
+    pip install --quiet -r "$SCRIPT_DIR/requirements.txt"
+    ok "Dependencies OK"
 else
-  warn "requirements.txt introuvable, passage sans installation."
+    warn "requirements.txt not found, skipping installation."
 fi
 
-# ---------- Vérification Ollama --------------------------------------------
+# ---------- Ollama check ---------------------------------------------------
 if ! command -v ollama &>/dev/null; then
-  warn "Ollama n'est pas installé ou n'est pas dans le PATH."
-  warn "Installez-le depuis https://ollama.com, puis : ollama pull gemma3n"
+    warn "Ollama is not installed or not in PATH."
+    warn "Install it from https://ollama.com, then run: ollama pull gemma3n"
 fi
 
-# ---------- Vérification Piper TTS (optionnel) -----------------------------
+# ---------- Piper TTS check (optional) ------------------------------------
 if ! command -v piper-tts &>/dev/null; then
-  warn "piper-tts non détecté : la génération audio sera ignorée."
-  warn "Installez Piper depuis https://github.com/rhasspy/piper"
+    warn "piper-tts not detected: audio generation will be skipped."
+    warn "Install Piper from https://github.com/rhasspy/piper"
 fi
 
-# ---------- Téléchargement modèle Piper siwis-medium ----------------------
-PIPER_BASE_URL="https://huggingface.co/rhasspy/piper-voices/resolve/main/fr/fr_FR/siwis/medium"
-PIPER_MODEL="fr_FR-siwis-medium.onnx"
-PIPER_CONFIG="fr_FR-siwis-medium.onnx.json"
+# ---------- Piper model download -------------------------------------------
+# Each entry is: "filename|base_url"
+# The .onnx and its .onnx.json config are downloaded automatically for each.
+PIPER_HF="https://huggingface.co/rhasspy/piper-voices/resolve/main"
+PIPER_MODELS=(
+    # French
+    "fr_FR-siwis-medium.onnx|$PIPER_HF/fr/fr_FR/siwis/medium"
+    # English
+    "en_US-lessac-medium.onnx|$PIPER_HF/en/en_US/lessac/medium"
+)
+
+MODELS_DIR="$SCRIPT_DIR/models"
+mkdir -p "$MODELS_DIR"
 
 download_if_missing() {
-  local file="$1"
-  local url="$2"
-  if [ ! -f "$SCRIPT_DIR/$file" ]; then
-    log "Téléchargement de $file..."
-    if command -v curl &>/dev/null; then
-      curl -L --progress-bar -o "$SCRIPT_DIR/$file" "$url" \
-        || { err "Échec du téléchargement de $file"; exit 1; }
-    elif command -v wget &>/dev/null; then
-      wget -q --show-progress -O "$SCRIPT_DIR/$file" "$url" \
-        || { err "Échec du téléchargement de $file"; exit 1; }
+    local dest="$1"
+    local url="$2"
+    local name
+    name="$(basename "$dest")"
+    if [ ! -f "$dest" ]; then
+        log "Downloading $name..."
+        if command -v curl &>/dev/null; then
+            curl -L --progress-bar -o "$dest" "$url" \
+                || { err "Failed to download $name"; exit 1; }
+        elif command -v wget &>/dev/null; then
+            wget -q --show-progress -O "$dest" "$url" \
+                || { err "Failed to download $name"; exit 1; }
+        else
+            err "Neither curl nor wget found. Cannot download $name."
+            exit 1
+        fi
+        ok "$name downloaded"
     else
-      err "curl et wget sont tous les deux absents. Impossible de télécharger $file."
-      exit 1
+        ok "$name already present"
     fi
-    ok "$file téléchargé"
-  else
-    ok "$file déjà présent"
-  fi
 }
 
-download_if_missing "$PIPER_MODEL"  "$PIPER_BASE_URL/$PIPER_MODEL"
-download_if_missing "$PIPER_CONFIG" "$PIPER_BASE_URL/$PIPER_CONFIG"
+log "Checking Piper voice models..."
+for entry in "${PIPER_MODELS[@]}"; do
+    model_file="${entry%%|*}"
+    base_url="${entry##*|}"
+    download_if_missing "$MODELS_DIR/$model_file"       "$base_url/$model_file"
+    download_if_missing "$MODELS_DIR/$model_file.json"  "$base_url/$model_file.json"
+done
 
-# ---------- Lancement ------------------------------------------------------
-log "Démarrage du générateur de podcast..."
+# ---------- Launch ---------------------------------------------------------
+log "Starting podcast generator..."
 echo ""
 
-# Transmet tous les arguments à main.py (sujet optionnel)
+# Forward all arguments to main.py (optional topic / flags)
 "$PYTHON" "$SCRIPT_DIR/main.py" "$@"

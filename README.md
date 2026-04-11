@@ -1,40 +1,40 @@
 # 🎙️ Podcast Generator
 
-Générateur automatique de podcasts techniques en français. Le script choisit un sujet, rédige un script complet via un LLM local, puis le synthétise en audio avec Piper TTS.
+Automatic technical podcast generator in French and English. The script picks a topic, writes a full script via a local LLM, then synthesizes it to audio with Piper TTS.
 
 ---
 
-## Fonctionnement
+## How it works
 
-1. **Génération du sujet** — un sujet, un angle éditorial et un contexte sont tirés aléatoirement (ou fournis manuellement)
-2. **Plan** — le LLM génère un plan en 4 à 6 parties distinctes
-3. **Rédaction** — intro, parties et conclusion sont rédigées séquentiellement, chaque partie ignorant les thèmes déjà couverts
-4. **Synthèse vocale** — le texte est converti en `.wav` par Piper TTS avec la voix `fr_FR-siwis-medium`
-5. **Sauvegarde** — le texte brut est toujours écrit dans `podcast_texte.txt`, l'audio dans `podcast.wav`
+1. **Topic generation** — a topic, editorial angle, and context are picked randomly (or provided manually)
+2. **Outline** — the LLM generates a plan with 4 to 6 distinct sections
+3. **Writing** — intro, sections, and conclusion are written sequentially; each section is aware of what was already covered to avoid repetition
+4. **Text-to-speech** — the script is converted to `.wav` by Piper TTS using the best available voice for the selected language
+5. **Output** — the raw text is always saved to `podcast_text.txt`, audio to `podcast.wav`
 
 ---
 
-## Prérequis
+## Requirements
 
-| Outil | Rôle | Installation |
+| Tool | Role | Install |
 |---|---|---|
-| Python 3.9+ | Exécution du script | [python.org](https://www.python.org/downloads/) |
-| [Ollama](https://ollama.com) | LLM local | `curl -fsSL https://ollama.com/install.sh \| sh` |
-| modèle `gemma3n` | Génération du texte | `ollama pull gemma3n` |
-| [Piper TTS](https://github.com/OHF-Voice/piper1-gpl) | Synthèse vocale | voir ci-dessous |
-| `curl` ou `wget` | Téléchargement du modèle voix | inclus sur la plupart des systèmes |
+| Python 3.9+ | Run the script | [python.org](https://www.python.org/downloads/) |
+| [Ollama](https://ollama.com) | Local LLM | `curl -fsSL https://ollama.com/install.sh \| sh` |
+| `gemma3n` model | Text generation | `ollama pull gemma3n` |
+| [Piper TTS](https://github.com/OHF-Voice/piper1-gpl) | Voice synthesis | see below |
+| `curl` or `wget` | Voice model download | included on most systems |
 
-### Installer Piper TTS
+### Installing Piper TTS
 
-Si comme moi, vous etes sur ArchLinux, vous pouvez passer par l'AUR :
+On Arch Linux, install from the AUR:
 
 ```bash
 yay -S piper-tts
 ```
 
-Sinon, téléchargez la dernière release pour votre architecture depuis [github.com/OHF-Voice/piper/releases](https://github.com/OHF-Voice/piper1-gpl/releases)
+Otherwise, download the latest release for your architecture from [github.com/OHF-Voice/piper/releases](https://github.com/OHF-Voice/piper1-gpl/releases).
 
-> **Note :** le modèle de voix (`fr_FR-siwis-medium.onnx`) est téléchargé automatiquement par `run.sh` au premier lancement.
+> **Note:** all voice models are downloaded automatically by `run.sh` on first run and stored in the `models/` folder.
 
 ---
 
@@ -46,67 +46,76 @@ cd podcast-generator
 chmod +x run.sh
 ```
 
-Les dépendances Python sont installées automatiquement dans un virtualenv `.venv/` au premier lancement.
+Python dependencies are installed automatically in a `.venv/` virtualenv on first run.
 
 ---
 
-## Utilisation
+## Usage
 
 ```bash
-# Sujet aléatoire
+# Random topic, interactive language selection
 ./run.sh
 
-# Sujet personnalisé
-./run.sh "La conteneurisation dans les environnements critiques"
+# Pass language directly
+./run.sh --lang fr
+./run.sh --lang en
+
+# Custom topic
+./run.sh --lang fr "La conteneurisation dans les environnements critiques"
+./run.sh --lang en "Containerization in critical environments"
 ```
 
-### Fichiers générés
+### Output files
 
-| Fichier | Contenu |
+| File | Content |
 |---|---|
-| `podcast_texte.txt` | Script complet du podcast (toujours généré) |
-| `podcast.wav` | Audio synthétisé (si Piper TTS est disponible) |
+| `podcast_text.txt` | Full podcast script (always generated) |
+| `podcast.wav` | Synthesized audio (if Piper TTS is available) |
 
 ---
 
-## Structure du projet
+## Project structure
 
 ```
 .
-├── main.py                         # Pipeline principal
-├── run.sh                          # Script de lancement
-├── requirements.txt                # Dépendances Python
-├── fr_FR-siwis-medium.onnx         # Modèle voix Piper (téléchargé auto)
-├── fr_FR-siwis-medium.onnx.json    # Config du modèle (téléchargé auto)
-├── .venv/                          # Virtualenv (créé auto)
-├── podcast_texte.txt               # Sortie texte (créé à l'exécution)
-└── podcast.wav                     # Sortie audio (créé à l'exécution)
+├── main.py               # Main pipeline
+├── run.sh                # Launch script
+├── requirements.txt      # Python dependencies
+├── models/               # Piper voice models (auto-downloaded)
+│   ├── fr_FR-siwis-medium.onnx
+│   ├── fr_FR-siwis-medium.onnx.json
+│   ├── en_US-lessac-medium.onnx
+│   ├── en_US-lessac-medium.onnx.json
+├── .venv/                # Virtualenv (auto-created)
+├── podcast_text.txt      # Text output (created at runtime)
+└── podcast.wav           # Audio output (created at runtime)
 ```
 
 ---
 
 ## Configuration
 
-Les paramètres éditoriaux sont définis en tête de `main.py` :
+Editorial parameters are defined at the top of `main.py`:
 
-- **`SUJETS`** — liste des domaines techniques disponibles (Linux, Blockchain, Jeux vidéo…)
-- **`ANGLES`** — angle éditorial appliqué (historique, critique, comparatif…)
-- **`TWISTS`** — contexte supplémentaire (industriel, écologique, post-GAFAM…)
-- **`MODEL`** — modèle Ollama utilisé (défaut : `gemma3n`)
-- **`VOIX_PIPER`** — liste ordonnée des modèles de voix tentés
+- **`TOPICS`** — list of available technical domains (Linux, Blockchain, Game Dev…), for both `fr` and `en`
+- **`ANGLES`** — editorial angle applied (historical, critical, comparative…)
+- **`TWISTS`** — additional context (industrial, ecological, post-GAFAM…)
+- **`TARGET_STYLE`** — tone and style instructions passed to the LLM
+- **`MODEL`** — Ollama model used (default: `gemma3n`)
+- **`PIPER_VOICES`** — ordered list of voice models tried per language, pointing to `./models/`
 
 ---
 
-## Dépannage
+## Troubleshooting
 
-**Ollama ne répond pas**
-Vérifiez que le service tourne : `ollama serve`. Si le modèle n'est pas encore téléchargé : `ollama pull gemma3n`.
+**Ollama not responding**
+Check that the service is running: `ollama serve`. If the model is not yet downloaded: `ollama pull gemma3n`.
 
-**Pas d'audio généré**
-Vérifiez que `piper-tts` est bien dans le PATH : `which piper-tts`. Le texte reste disponible dans `podcast_texte.txt`.
+**No audio generated**
+Check that `piper-tts` is in your PATH: `which piper-tts`. The text is always available in `podcast_text.txt`.
 
-**Téléchargement du modèle voix échoue**
-Vérifiez votre connexion, puis téléchargez manuellement depuis [Hugging Face](https://huggingface.co/rhasspy/piper-voices/tree/main/fr/fr_FR/siwis/medium) et placez les deux fichiers à la racine du projet.
+**Voice model download fails**
+Check your connection, then download manually from [Hugging Face](https://huggingface.co/rhasspy/piper-voices) and place the `.onnx` and `.onnx.json` files in the `models/` folder.
 
-**Réponse tronquée du LLM**
-Le script détecte automatiquement les troncatures et relance avec un budget de tokens doublé. Si le problème persiste, augmentez `max_tokens` dans les appels à `appeler_llm()`.
+**LLM response truncated**
+The script automatically detects truncations and retries with a doubled token budget. If the issue persists, increase `max_tokens` in the `call_llm()` calls in `main.py`.
