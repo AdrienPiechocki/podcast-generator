@@ -21,23 +21,18 @@ Générateur automatique de podcasts techniques en français. Le script choisit 
 | Python 3.9+ | Exécution du script | [python.org](https://www.python.org/downloads/) |
 | [Ollama](https://ollama.com) | LLM local | `curl -fsSL https://ollama.com/install.sh \| sh` |
 | modèle `gemma3n` | Génération du texte | `ollama pull gemma3n` |
-| [Piper TTS](https://github.com/rhasspy/piper) | Synthèse vocale | voir ci-dessous |
+| [Piper TTS](https://github.com/OHF-Voice/piper1-gpl) | Synthèse vocale | voir ci-dessous |
 | `curl` ou `wget` | Téléchargement du modèle voix | inclus sur la plupart des systèmes |
 
 ### Installer Piper TTS
-
-Téléchargez la dernière release pour votre architecture depuis [github.com/rhasspy/piper/releases](https://github.com/rhasspy/piper/releases), extrayez l'archive et placez le binaire `piper-tts` dans votre `PATH`. Exemple :
-
-```bash
-tar -xzf piper_linux_x86_64.tar.gz
-sudo mv piper/piper-tts /usr/local/bin/
-```
 
 Si comme moi, vous etes sur ArchLinux, vous pouvez passer par l'AUR :
 
 ```bash
 yay -S piper-tts
 ```
+
+Sinon, téléchargez la dernière release pour votre architecture depuis [github.com/OHF-Voice/piper/releases](https://github.com/OHF-Voice/piper1-gpl/releases)
 
 > **Note :** le modèle de voix (`fr_FR-siwis-medium.onnx`) est téléchargé automatiquement par `run.sh` au premier lancement.
 
