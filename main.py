@@ -398,7 +398,7 @@ Partie à rédiger : {section}
 {style}
 
 Règles ABSOLUES :
-- 400 à 500 mots UNIQUEMENT sur "{section}"
+- 150 à 250 mots UNIQUEMENT sur "{section}"
 - Contenu FACTUEL, pas d'invention
 - Pas d'introduction du type "Dans cette partie..."
 - Pas de conclusion globale
@@ -460,7 +460,7 @@ Le podcast abordera : {outline_str}
 {style}
 
 Règles :
-- 150 à 200 mots
+- 50 à 100 mots
 - Accroche forte dès la première phrase
 - Annonce claire du plan sans le détailler
 - Pas de mise en scène (musique, etc.)
@@ -518,7 +518,7 @@ Points abordés : {key_points}
 {style}
 
 Règles :
-- 150 à 200 mots
+- 50 à 100 mots
 - Synthèse rapide + ouverture sur l'avenir
 - Pas de répétition mot pour mot des parties
 - Terminer par une phrase complète avant [/CONCLUSION]
