@@ -1,11 +1,9 @@
 # 🎙️ Podcast Generator
-
 Automatic technical podcast generator in French and English. The script picks a topic, writes a full script via a local LLM, then synthesizes it to audio with Piper TTS.
 
 ---
 
 ## How it works
-
 1. **Topic generation** — a topic, editorial angle, and context are picked randomly (or provided manually)
 2. **Outline** — the LLM generates a plan with 4 to 6 distinct sections
 3. **Writing** — intro, sections, and conclusion are written sequentially; each section is aware of what was already covered to avoid repetition
@@ -19,13 +17,15 @@ Automatic technical podcast generator in French and English. The script picks a 
 | Tool | Role | Install |
 |---|---|---|
 | Python 3.9+ | Run the script | [python.org](https://www.python.org/downloads/) |
-| [Ollama](https://ollama.com) | Local LLM | `curl -fsSL https://ollama.com/install.sh \| sh` |
+| [Ollama](https://ollama.com) | Local LLM | See platform instructions below |
 | `gemma3n` model | Text generation | `ollama pull gemma3n` |
-| `curl` or `wget` | Voice model download | included on most systems |
+| `curl` or `wget` | Voice model download | Included on most systems |
 
 ---
 
 ## Installation
+
+### Linux
 
 ```bash
 git clone https://github.com/AdrienPiechocki/podcast-generator.git
@@ -33,11 +33,37 @@ cd podcast-generator
 chmod +x run.sh
 ```
 
+Install Ollama:
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+ollama pull gemma3n
+```
+
 Python dependencies are installed automatically in a `.venv/` virtualenv on first run.
+
+### Windows
+
+> Requires Windows 10 or later. Run commands in **PowerShell** or **Command Prompt**.
+
+```bat
+git clone https://github.com/AdrienPiechocki/podcast-generator.git
+cd podcast-generator
+```
+
+Install Ollama: download the installer from [ollama.com](https://ollama.com), then in a terminal:
+```bat
+ollama pull gemma3n
+```
+
+Python dependencies are installed automatically in a `.venv\` virtualenv on first run.
+
+> **Note:** `curl.exe` is bundled with Windows 10+. If voice model downloads fail, PowerShell's `Invoke-WebRequest` is used as a fallback automatically.
 
 ---
 
 ## Usage
+
+### Linux
 
 ```bash
 # Random topic, interactive language selection
@@ -50,6 +76,21 @@ Python dependencies are installed automatically in a `.venv/` virtualenv on firs
 # Custom topic
 ./run.sh --lang fr "La conteneurisation dans les environnements critiques"
 ./run.sh --lang en "Containerization in critical environments"
+```
+
+### Windows
+
+```bat
+:: Random topic, interactive language selection
+run.bat
+
+:: Pass language directly
+run.bat --lang fr
+run.bat --lang en
+
+:: Custom topic
+run.bat --lang fr "La conteneurisation dans les environnements critiques"
+run.bat --lang en "Containerization in critical environments"
 ```
 
 ### Output files
@@ -66,13 +107,14 @@ Python dependencies are installed automatically in a `.venv/` virtualenv on firs
 ```
 .
 ├── main.py               # Main pipeline
-├── run.sh                # Launch script
+├── run.sh                # Launch script (Linux)
+├── run.bat               # Launch script (Windows)
 ├── requirements.txt      # Python dependencies
 ├── models/               # Piper voice models (auto-downloaded)
 │   ├── fr_FR-siwis-medium.onnx
 │   ├── fr_FR-siwis-medium.onnx.json
 │   ├── en_US-lessac-medium.onnx
-│   ├── en_US-lessac-medium.onnx.json
+│   └── en_US-lessac-medium.onnx.json
 ├── .venv/                # Virtualenv (auto-created)
 ├── podcast_text.txt      # Text output (created at runtime)
 └── podcast.wav           # Audio output (created at runtime)
@@ -95,14 +137,37 @@ Editorial parameters are defined at the top of `main.py`:
 
 ## Troubleshooting
 
-**Ollama not responding**
-Check that the service is running: `ollama serve`. If the model is not yet downloaded: `ollama pull gemma3n`.
+### Ollama not responding
 
-**No audio generated**
-Check that `piper-tts` is in your PATH: `which piper-tts`. The text is always available in `podcast_text.txt`.
+Make sure the service is running:
 
-**Voice model download fails**
-Check your connection, then download manually from [Hugging Face](https://huggingface.co/rhasspy/piper-voices) and place the `.onnx` and `.onnx.json` files in the `models/` folder.
+- **Linux:** `ollama serve`
+- **Windows:** Ollama runs as a background service after installation. If it is not responding, relaunch it from the Start menu or run `ollama serve` in a terminal.
 
-**LLM response truncated**
+If the model is not yet downloaded: `ollama pull gemma3n`.
+
+### No audio generated
+
+Make sure `piper-tts` is available:
+
+- **Linux:** `which piper-tts`
+- **Windows:** `where piper-tts`
+
+The full script is always available in `podcast_text.txt` regardless.
+
+### Voice model download fails
+
+Check your connection, then download the `.onnx` and `.onnx.json` files manually from [Hugging Face](https://huggingface.co/rhasspy/piper-voices) and place them in the `models/` folder.
+
+On Windows, if `curl.exe` is unavailable, the script falls back to PowerShell's `Invoke-WebRequest` automatically.
+
+### LLM response truncated
+
 The script automatically detects truncations and retries with a doubled token budget. If the issue persists, increase `max_tokens` in the `call_llm()` calls in `main.py`.
+
+### Python not found on Windows
+
+Make sure Python is installed from [python.org](https://www.python.org/downloads/) and that **"Add Python to PATH"** was checked during installation. You can verify with:
+```bat
+python --version
+```
