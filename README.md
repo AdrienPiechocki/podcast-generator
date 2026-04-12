@@ -251,7 +251,7 @@ The LLM picks one value from each list at random and combines them into a genera
 | `conclusion_generation` | `{topic}`, `{key_points}`, `{style}` |
 | `already_covered_label` | *(no placeholders — plain label string)* |
 
-You can rewrite any prompt entirely as long as you keep the `[TAG]...[/TAG]` format that the parser expects in the LLM response (`[TITRE]`, `[PARTIE]`, `[INTRO]`, `[CONCLUSION]`).
+You can rewrite any prompt entirely as long as you keep the `[TAG]...[/TAG]` format that the parser expects in the LLM response (`[T]`, `[P]`, `[I]`, `[C]`).
 
 **`fallback`** defines the default values used when the LLM returns an empty or unparseable response. Supports `{topic}` and `{section}` where relevant:
 

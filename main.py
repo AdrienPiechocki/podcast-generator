@@ -165,17 +165,17 @@ def generate_topic(L: dict) -> str:
     if not raw:
         return L["fallback"]["topic"]
 
-    titles = extract_tag_list(raw, "TITRE")
+    titles = extract_tag_list(raw, "T")
     if not titles:
         log.debug(f"Tag extraction failed (fallback active), raw output:\n{raw[:500]}")
         lines = [l.strip() for l in raw.split("\n") if l.strip()]
         titles = []
         for line in lines:
-            m = re.match(r'^\[(.+?)\[/TITRE\]$', line, re.IGNORECASE)
+            m = re.match(r'^\[(.+?)\[/T\]$', line, re.IGNORECASE)
             if m:
                 titles.append(m.group(1).strip())
                 continue
-            m = re.match(r'^\[TITRE\](.+?)\[/TITRE\]$', line, re.IGNORECASE)
+            m = re.match(r'^\[T\](.+?)\[/T\]$', line, re.IGNORECASE)
             if m:
                 titles.append(m.group(1).strip())
                 continue
@@ -203,17 +203,17 @@ def generate_outline(topic: str, L: dict) -> list[str]:
         log.warning("LLM returned nothing for outline, using default.")
         return L["fallback"]["outline"]
 
-    sections = extract_tag_list(raw, "PARTIE")
+    sections = extract_tag_list(raw, "P")
     if not sections:
         log.debug("Outline tag extraction failed (fallback active)")
         lines = [l.strip() for l in raw.split("\n") if l.strip()]
         sections = []
         for line in lines:
-            m = re.match(r'\[PARTIE\](.+?)(?:\[/?|</)PARTIE\]?', line, re.IGNORECASE)
+            m = re.match(r'\[P\](.+?)(?:\[/?|</)P\]?', line, re.IGNORECASE)
             if m:
                 sections.append(m.group(1).strip())
                 continue
-            m = re.match(r'^(.+?)(?:\[/?|</)PARTIE\]?\s*$', line, re.IGNORECASE)
+            m = re.match(r'^(.+?)(?:\[/?|</)P\]?\s*$', line, re.IGNORECASE)
             if m and len(m.group(1)) > 3:
                 sections.append(m.group(1).strip())
                 continue
@@ -234,7 +234,7 @@ def generate_section(topic: str, section: str, previous_sections: list[str], L: 
     already_covered = ""
     if previous_sections:
         label = L["prompts"]["already_covered_label"]
-        already_covered = label + "\n" + "\n".join(f"- {s}" for s in previous_sections[-3:])
+        already_covered = label + "\n\n" + "\n".join(f"{s}" for s in previous_sections)
 
     prompt = L["prompts"]["section_generation"].format(
         topic=topic,
@@ -247,7 +247,7 @@ def generate_section(topic: str, section: str, previous_sections: list[str], L: 
     if not raw:
         return L["fallback"]["section_unavailable"].format(section=section)
 
-    content = extract_tag(raw, "PARTIE")
+    content = extract_tag(raw, "P")
     return content if content else clean_text(raw)
 
 def generate_intro(topic: str, outline: list[str], L: dict) -> str:
@@ -263,7 +263,7 @@ def generate_intro(topic: str, outline: list[str], L: dict) -> str:
         log.warning("LLM returned nothing for intro, using fallback.")
         return L["fallback"]["intro"].format(topic=topic)
 
-    content = extract_tag(raw, "INTRO")
+    content = extract_tag(raw, "I")
     return content if content else clean_text(raw)
 
 def generate_conclusion(topic: str, outline: list[str], L: dict) -> str:
@@ -279,7 +279,7 @@ def generate_conclusion(topic: str, outline: list[str], L: dict) -> str:
         log.warning("LLM returned nothing for conclusion, using fallback.")
         return L["fallback"]["conclusion"].format(topic=topic)
 
-    content = extract_tag(raw, "CONCLUSION")
+    content = extract_tag(raw, "C")
     return content if content else clean_text(raw)
 
 # ---------------------------
@@ -303,7 +303,7 @@ def generate_full_content(topic: str, L: dict) -> str:
         log.info(msgs["generating_section"].format(i=i + 1, total=len(outline), section=section))
         text = generate_section(topic, section, processed_sections, L)
         sections.append(text)
-        processed_sections.append(section)
+        processed_sections.append(text)
 
     log.info(msgs["generating_conclusion"])
     conclusion = generate_conclusion(topic, outline, L)

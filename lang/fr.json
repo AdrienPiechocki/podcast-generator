@@ -39,7 +39,6 @@
     "cette année",
     "dans un contexte industriel",
     "pour les développeurs",
-    "dans les environnements critiques",
     "face aux géants du cloud",
     "dans un monde post-GAFAM",
     "avec des contraintes écologiques"
@@ -54,12 +53,12 @@
     "section_unavailable": "[Contenu indisponible pour la partie : {section}]"
   },
   "prompts": {
-    "topic_generation": "Seed: {seed}\n\nTu dois générer 5 titres d'articles de podcast technique en français.\nSujet : {topic}\nContexte : {twist}\nAngle éditorial : {angle}\n\nRègles ABSOLUES :\n- Chaque titre doit être FACTUEL et ancré dans le sujet donné\n- Aucune invention, aucun hors-sujet\n- Un titre par ligne, uniquement entre balises\n- Pas de numérotation, pas de markdown, pas de parenthèses\n\nFormat OBLIGATOIRE (exactement comme ceci) :\n[TITRE]Titre ici[/TITRE]\n[TITRE]Titre ici[/TITRE]\n[TITRE]Titre ici[/TITRE]\n[TITRE]Titre ici[/TITRE]\n[TITRE]Titre ici[/TITRE]",
-    "outline_generation": "Tu dois créer un plan de podcast technique en français.\nSujet précis : {topic}\n\nRègles ABSOLUES :\n- 4 à 6 parties DISTINCTES, sans chevauchement\n- Chaque partie doit couvrir un aspect DIFFÉRENT du sujet\n- Titres courts (5 mots max)\n- Aucun markdown, aucune explication\n\nFormat OBLIGATOIRE :\n[PARTIE]Titre[/PARTIE]\n[PARTIE]Titre[/PARTIE]",
-    "section_generation": "Tu es un journaliste radio expert en technologie.\nSujet global du podcast : {topic}\nPartie à rédiger : {section}\n{already_covered}\n{style}\n\nRègles ABSOLUES :\n- 400 à 500 mots UNIQUEMENT sur \"{section}\"\n- Contenu FACTUEL, pas d'invention\n- Pas d'introduction du type \"Dans cette partie...\"\n- Pas de conclusion globale\n- Pas de répétition des parties précédentes\n- Pas de mise en scène (musique, bruitages, etc.)\n- Terminer obligatoirement par une phrase complète avant [/PARTIE]\n\nFormat :\n[PARTIE]\nTexte ici\n[/PARTIE]",
-    "already_covered_label": "Thèmes déjà couverts (NE PAS RÉPÉTER) :",
-    "intro_generation": "Tu es un journaliste radio.\nRédige l'introduction d'un podcast sur : {topic}\nLe podcast abordera : {outline_str}\n{style}\n\nRègles :\n- 150 à 200 mots\n- Accroche forte dès la première phrase\n- Annonce claire du plan sans le détailler\n- Pas de mise en scène (musique, etc.)\n- Terminer par une phrase complète avant [/INTRO]\n\nFormat :\n[INTRO]\nTexte\n[/INTRO]",
-    "conclusion_generation": "Tu es un journaliste radio.\nRédige la conclusion d'un podcast sur : {topic}\nPoints abordés : {key_points}\n{style}\n\nRègles :\n- 150 à 200 mots\n- Synthèse rapide + ouverture sur l'avenir\n- Pas de répétition mot pour mot des parties\n- Terminer par une phrase complète avant [/CONCLUSION]\n\nFormat :\n[CONCLUSION]\nTexte\n[/CONCLUSION]"
+    "topic_generation": "Seed: {seed}\n\nTu dois générer 5 titres d'articles de podcast technique en français.\nSujet : {topic}\nContexte : {twist}\nAngle éditorial : {angle}\n\nRègles ABSOLUES :\n- Chaque titre doit être FACTUEL et ancré dans le sujet donné\n- Aucune invention, aucun hors-sujet\n- Un titre par ligne, uniquement entre balises\n- Pas de numérotation, pas de markdown, pas de parenthèses\n\nFormat OBLIGATOIRE (exactement comme ceci) :\n[T]Titre ici[/T]\n[T]Titre ici[/T]\n[T]Titre ici[/T]\n[T]Titre ici[/T]\n[T]Titre ici[/T]",
+    "outline_generation": "Tu dois créer un plan de podcast technique en français.\nSujet précis : {topic}\n\nRègles ABSOLUES :\n- 4 à 6 parties DISTINCTES, sans chevauchement\n- Chaque partie doit couvrir un aspect DIFFÉRENT du sujet\n- Titres courts (5 mots max)\n- Aucun markdown, aucune explication\n\nFormat OBLIGATOIRE :\n[P]Titre[/P]\n[P]Titre[/P]",
+    "section_generation": "Tu es un journaliste radio expert en technologie.\nSujet global du podcast : {topic}\nPartie à rédiger : {section}\n{style}\n\nRègles ABSOLUES :\n- 200 à 400 mots UNIQUEMENT sur \"{section}\"\n- Contenu FACTUEL, pas d'invention\n- Pas d'introduction du type \"Dans cette partie...\"\n- Pas de conclusion globale\n- Pas de répétition des parties précédentes\n- Pas de mise en scène (musique, bruitages, etc.)\n- Terminer obligatoirement par une phrase complète avant [/P]\n\nFormat :\n[P]\nTexte ici\n[/P]\n{already_covered}",
+    "already_covered_label": "Sujets déjà couverts (NE PAS RÉPÉTER) :",
+    "intro_generation": "Tu es un journaliste radio.\nRédige l'introduction d'un podcast sur : {topic}\nLe podcast abordera : {outline_str}\n{style}\n\nRègles :\n- 50 à 100 mots\n- Accroche forte dès la première phrase\n- Annonce claire du plan sans le détailler\n- Pas de mise en scène (musique, etc.)\n- Terminer par une phrase complète avant [/I]\n\nFormat :\n[I]\nTexte\n[/I]",
+    "conclusion_generation": "Tu es un journaliste radio.\nRédige la conclusion d'un podcast sur : {topic}\nPoints abordés : {key_points}\n{style}\n\nRègles :\n- 50 à 100 mots\n- Synthèse rapide + ouverture sur l'avenir\n- Pas de répétition mot pour mot des parties\n- Terminer par une phrase complète avant [/C]\n\nFormat :\n[C]\nTexte\n[/C]"
   },
   "log_messages": {
     "language_selected": "Langue sélectionnée : FR",
