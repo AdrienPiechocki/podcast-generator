@@ -1,0 +1,78 @@
+{
+  "name": "Français",
+  "topics": [
+    "Linux",
+    "Wayland",
+    "Open Source",
+    "Jeux Vidéos Indépendants",
+    "Jeux Vidéos Triple A",
+    "Langages de Programmation",
+    "Développement Logiciel",
+    "Développement de jeux vidéo",
+    "Studios de jeux vidéo",
+    "Systèmes Unix et BSD",
+    "Administration système",
+    "Virtualisation",
+    "Conteneurisation et orchestration",
+    "Architecture des systèmes d'exploitation",
+    "Réseaux informatiques",
+    "Architecture des ordinateurs",
+    "Systèmes embarqués",
+    "Souveraineté Numérique",
+    "Sobriété énergétique",
+    "Blockchain"
+  ],
+  "angles": [
+    "angle historique",
+    "angle critique",
+    "angle futuriste",
+    "angle technique avancé",
+    "angle débutant",
+    "angle controversé",
+    "angle comparatif",
+    "angle business",
+    "angle sécurité",
+    "angle performance",
+    "angle philosophie du logiciel"
+  ],
+  "twists": [
+    "cette année",
+    "dans un contexte industriel",
+    "pour les développeurs",
+    "dans les environnements critiques",
+    "face aux géants du cloud",
+    "dans un monde post-GAFAM",
+    "avec des contraintes écologiques"
+  ],
+  "target_style": "Style attendu :\n- Ton journalistique neutre et posé, ni trop familier ni trop académique\n- Phrases courtes, rythme oral mais sans exclamations ou interpellations du type \"Écoutez bien !\"\n- Pas de \"on\" de connivence excessive ; préférer \"nous\" ou la forme impersonnelle\n- Terminer sur une phrase complète, jamais en milieu de pensée",
+  "piper_voice": "./models/fr_FR-siwis-medium.onnx",
+  "fallback": {
+    "topic": "Linux : angle historique",
+    "outline": ["Contexte et origines", "État de l'art", "Enjeux techniques", "Cas d'usage", "Perspectives"],
+    "intro": "Bienvenue dans ce podcast consacré à {topic}.",
+    "conclusion": "Voilà qui conclut notre podcast sur {topic}. Merci de nous avoir écoutés.",
+    "section_unavailable": "[Contenu indisponible pour la partie : {section}]"
+  },
+  "prompts": {
+    "topic_generation": "Seed: {seed}\n\nTu dois générer 5 titres d'articles de podcast technique en français.\nSujet : {topic}\nContexte : {twist}\nAngle éditorial : {angle}\n\nRègles ABSOLUES :\n- Chaque titre doit être FACTUEL et ancré dans le sujet donné\n- Aucune invention, aucun hors-sujet\n- Un titre par ligne, uniquement entre balises\n- Pas de numérotation, pas de markdown, pas de parenthèses\n\nFormat OBLIGATOIRE (exactement comme ceci) :\n[TITRE]Titre ici[/TITRE]\n[TITRE]Titre ici[/TITRE]\n[TITRE]Titre ici[/TITRE]\n[TITRE]Titre ici[/TITRE]\n[TITRE]Titre ici[/TITRE]",
+    "outline_generation": "Tu dois créer un plan de podcast technique en français.\nSujet précis : {topic}\n\nRègles ABSOLUES :\n- 4 à 6 parties DISTINCTES, sans chevauchement\n- Chaque partie doit couvrir un aspect DIFFÉRENT du sujet\n- Titres courts (5 mots max)\n- Aucun markdown, aucune explication\n\nFormat OBLIGATOIRE :\n[PARTIE]Titre[/PARTIE]\n[PARTIE]Titre[/PARTIE]",
+    "section_generation": "Tu es un journaliste radio expert en technologie.\nSujet global du podcast : {topic}\nPartie à rédiger : {section}\n{already_covered}\n{style}\n\nRègles ABSOLUES :\n- 400 à 500 mots UNIQUEMENT sur \"{section}\"\n- Contenu FACTUEL, pas d'invention\n- Pas d'introduction du type \"Dans cette partie...\"\n- Pas de conclusion globale\n- Pas de répétition des parties précédentes\n- Pas de mise en scène (musique, bruitages, etc.)\n- Terminer obligatoirement par une phrase complète avant [/PARTIE]\n\nFormat :\n[PARTIE]\nTexte ici\n[/PARTIE]",
+    "already_covered_label": "Thèmes déjà couverts (NE PAS RÉPÉTER) :",
+    "intro_generation": "Tu es un journaliste radio.\nRédige l'introduction d'un podcast sur : {topic}\nLe podcast abordera : {outline_str}\n{style}\n\nRègles :\n- 150 à 200 mots\n- Accroche forte dès la première phrase\n- Annonce claire du plan sans le détailler\n- Pas de mise en scène (musique, etc.)\n- Terminer par une phrase complète avant [/INTRO]\n\nFormat :\n[INTRO]\nTexte\n[/INTRO]",
+    "conclusion_generation": "Tu es un journaliste radio.\nRédige la conclusion d'un podcast sur : {topic}\nPoints abordés : {key_points}\n{style}\n\nRègles :\n- 150 à 200 mots\n- Synthèse rapide + ouverture sur l'avenir\n- Pas de répétition mot pour mot des parties\n- Terminer par une phrase complète avant [/CONCLUSION]\n\nFormat :\n[CONCLUSION]\nTexte\n[/CONCLUSION]"
+  },
+  "log_messages": {
+    "language_selected": "Langue sélectionnée : FR",
+    "no_tty": "Pas de terminal interactif détecté, utilisation de l'anglais par défaut.",
+    "unsupported_lang": "Langue '{lang}' non supportée, retour à l'anglais.",
+    "generating_outline": "📋 Génération du plan...",
+    "generating_intro": "🎙️ Génération de l'intro...",
+    "generating_section": "✍️ Section {i}/{total} : {section}",
+    "generating_conclusion": "🔚 Génération de la conclusion...",
+    "generating_content": "🧠 Génération du contenu...",
+    "generating_audio": "🎙️ Génération de l'audio...",
+    "text_saved": "📄 Texte sauvegardé : {path}",
+    "podcast_done": "✅ Podcast généré : {path}",
+    "audio_missing": "⚠️ Audio non généré (Piper manquant ?). Texte disponible dans podcast_text.txt"
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "name": "English",
+  "topics": [
+    "Linux",
+    "Wayland",
+    "Open Source",
+    "Indie Video Games",
+    "AAA Video Games",
+    "Programming Languages",
+    "Software Development",
+    "Game Development",
+    "Video Game Studios",
+    "Unix and BSD Systems",
+    "System Administration",
+    "Virtualization",
+    "Containerization and Orchestration",
+    "Operating System Architecture",
+    "Computer Networks",
+    "Computer Architecture",
+    "Embedded Systems",
+    "Digital Sovereignty",
+    "Energy Efficiency in Tech",
+    "Blockchain"
+  ],
+  "angles": [
+    "historical angle",
+    "critical angle",
+    "futuristic angle",
+    "advanced technical angle",
+    "beginner angle",
+    "controversial angle",
+    "comparative angle",
+    "business angle",
+    "security angle",
+    "performance angle",
+    "software philosophy angle"
+  ],
+  "twists": [
+    "this year",
+    "in an industrial context",
+    "for developers",
+    "in critical environments",
+    "facing cloud giants",
+    "in a post-GAFAM world",
+    "with ecological constraints"
+  ],
+  "target_style": "Expected style:\n- Neutral, measured journalistic tone, neither too casual nor too academic\n- Short sentences, oral rhythm but without exclamations or prompts like \"Listen up!\"\n- Avoid excessive use of \"you guys\"; prefer \"we\" or impersonal forms\n- Always end on a complete sentence, never mid-thought",
+  "piper_voice": "./models/en_US-lessac-medium.onnx",
+  "fallback": {
+    "topic": "Linux: historical angle",
+    "outline": ["Context and Origins", "State of the Art", "Technical Challenges", "Use Cases", "Perspectives"],
+    "intro": "Welcome to this podcast about {topic}.",
+    "conclusion": "That concludes our podcast about {topic}. Thank you for listening.",
+    "section_unavailable": "[Content unavailable for section: {section}]"
+  },
+  "prompts": {
+    "topic_generation": "Seed: {seed}\n\nGenerate 5 titles for a technical podcast episode in English.\nTopic: {topic}\nContext: {twist}\nEditorial angle: {angle}\n\nABSOLUTE RULES:\n- Each title must be FACTUAL and grounded in the given topic\n- No invention, no off-topic content\n- One title per line, only between tags\n- No numbering, no markdown, no parentheses\n\nMANDATORY FORMAT (exactly like this):\n[TITRE]Title here[/TITRE]\n[TITRE]Title here[/TITRE]\n[TITRE]Title here[/TITRE]\n[TITRE]Title here[/TITRE]\n[TITRE]Title here[/TITRE]",
+    "outline_generation": "Create a plan for a technical podcast episode in English.\nPrecise topic: {topic}\n\nABSOLUTE RULES:\n- 4 to 6 DISTINCT sections, no overlap\n- Each section must cover a DIFFERENT aspect of the topic\n- Short titles (5 words max)\n- No markdown, no explanations\n\nMANDATORY FORMAT:\n[PARTIE]Title[/PARTIE]\n[PARTIE]Title[/PARTIE]",
+    "section_generation": "You are a radio journalist and technology expert.\nOverall podcast topic: {topic}\nSection to write: {section}\n{already_covered}\n{style}\n\nABSOLUTE RULES:\n- 400 to 500 words ONLY about \"{section}\"\n- FACTUAL content, no invention\n- No introduction like \"In this section...\"\n- No global conclusion\n- No repetition of previous sections\n- No staging (music, sound effects, etc.)\n- Always end with a complete sentence before [/PARTIE]\n\nFormat:\n[PARTIE]\nText here\n[/PARTIE]",
+    "already_covered_label": "Topics already covered (DO NOT REPEAT):",
+    "intro_generation": "You are a radio journalist.\nWrite the introduction for a podcast about: {topic}\nThe podcast will cover: {outline_str}\n{style}\n\nRules:\n- 150 to 200 words\n- Strong hook from the very first sentence\n- Clear outline of the plan without detailing it\n- No staging (music, etc.)\n- End with a complete sentence before [/INTRO]\n\nFormat:\n[INTRO]\nText\n[/INTRO]",
+    "conclusion_generation": "You are a radio journalist.\nWrite the conclusion for a podcast about: {topic}\nPoints covered: {key_points}\n{style}\n\nRules:\n- 150 to 200 words\n- Quick summary + opening toward the future\n- No word-for-word repetition of sections\n- End with a complete sentence before [/CONCLUSION]\n\nFormat:\n[CONCLUSION]\nText\n[/CONCLUSION]"
+  },
+  "log_messages": {
+    "language_selected": "Language selected: EN",
+    "no_tty": "No interactive terminal detected, defaulting to English.",
+    "unsupported_lang": "Unsupported language '{lang}', falling back to English.",
+    "generating_outline": "📋 Generating outline...",
+    "generating_intro": "🎙️ Generating intro...",
+    "generating_section": "✍️ Section {i}/{total}: {section}",
+    "generating_conclusion": "🔚 Generating conclusion...",
+    "generating_content": "🧠 Generating content...",
+    "generating_audio": "🎙️ Generating audio...",
+    "text_saved": "📄 Text saved: {path}",
+    "podcast_done": "✅ Podcast generated: {path}",
+    "audio_missing": "⚠️ Audio not generated (Piper missing?). Text available at podcast_text.txt"
+  }
+}
