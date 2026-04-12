@@ -21,20 +21,7 @@ Automatic technical podcast generator in French and English. The script picks a 
 | Python 3.9+ | Run the script | [python.org](https://www.python.org/downloads/) |
 | [Ollama](https://ollama.com) | Local LLM | `curl -fsSL https://ollama.com/install.sh \| sh` |
 | `gemma3n` model | Text generation | `ollama pull gemma3n` |
-| [Piper TTS](https://github.com/OHF-Voice/piper1-gpl) | Voice synthesis | see below |
 | `curl` or `wget` | Voice model download | included on most systems |
-
-### Installing Piper TTS
-
-On Arch Linux, install from the AUR:
-
-```bash
-yay -S piper-tts
-```
-
-Otherwise, download the latest release for your architecture from [github.com/OHF-Voice/piper/releases](https://github.com/OHF-Voice/piper1-gpl/releases).
-
-> **Note:** all voice models are downloaded automatically by `run.sh` on first run and stored in the `models/` folder.
 
 ---
 

@@ -68,12 +68,6 @@ if ! command -v ollama &>/dev/null; then
     warn "Install it from https://ollama.com, then run: ollama pull gemma3n"
 fi
 
-# ---------- Piper TTS check (optional) ------------------------------------
-if ! command -v piper-tts &>/dev/null; then
-    warn "piper-tts not detected: audio generation will be skipped."
-    warn "Install Piper from https://github.com/rhasspy/piper"
-fi
-
 # ---------- Piper model download -------------------------------------------
 # Each entry is: "filename|base_url"
 # The .onnx and its .onnx.json config are downloaded automatically for each.
