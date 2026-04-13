@@ -1,4 +1,5 @@
-import subprocess
+import wave
+from piper import PiperVoice
 import re
 import ollama
 import os
@@ -342,25 +343,16 @@ def generate_audio(text: str, voice_model: str, output_file: str = "podcast.wav"
         log.error(f"Piper model not found: {voice_model}")
         return None
 
-    tmp = "temp_podcast.txt"
     try:
-        with open(tmp, "w", encoding="utf-8") as f:
-            f.write(text)
-
-        cmd = ["sh", "-c", f"cat {tmp} | piper-tts -m {voice_model} -f {output_file}"]
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.returncode != 0:
-            log.error(f"Piper error: {result.stderr}")
-            return None
+        voice = PiperVoice.load(model)
+        with wave.open(output_file, "wb") as wav_file:
+            voice.synthesize_wav(text, wav_file)
 
         log.info(f"Audio generated: {output_file}")
         return output_file
     except Exception as e:
         log.error(f"Audio generation failed: {e}")
         return None
-    finally:
-        if os.path.exists(tmp):
-            os.remove(tmp)
 
 # ---------------------------
 # 🎧 Full pipeline

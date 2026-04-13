@@ -278,15 +278,6 @@ Make sure the service is running:
 
 If the model is not yet downloaded: `ollama pull gemma3n`.
 
-### No audio generated
-
-Make sure `piper-tts` is available:
-
-- **Linux:** `which piper-tts`
-- **Windows:** `where piper-tts`
-
-The full script is always available in `podcast_text.txt` regardless.
-
 ### Voice model download fails
 
 Check your connection, then download the `.onnx` and `.onnx.json` files manually from [Hugging Face](https://huggingface.co/rhasspy/piper-voices) and place them in the `models/` folder.
