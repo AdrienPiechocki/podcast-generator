@@ -117,8 +117,8 @@ All arguments are optional and can be combined freely. Any argument not provided
 
 | File | Content |
 |------|---------|
-| `podcast_text.txt` | Full podcast script (always generated) |
-| `podcast.wav` | Synthesized audio (if Edge TTS is available) |
+| `podcast_text.txt` | Full podcast script |
+| `podcast.wav` | Synthesized audio |
 
 ---
 
