@@ -152,10 +152,10 @@ def extract_tag_list(text: str, tag: str) -> list[str]:
 # ---------------------------
 # 🧠 Topic generation
 # ---------------------------
-def generate_topic(L: dict) -> str:
+def generate_topic(L: dict, angle: Optional[str] = None, twist: Optional[str] = None) -> str:
     topic = random.choice(L["topics"])
-    angle = random.choice(L["angles"])
-    twist = random.choice(L["twists"])
+    angle = angle if angle is not None else random.choice(L["angles"])
+    twist = twist if twist is not None else random.choice(L["twists"])
     seed = random.randint(0, 100000)
 
     prompt = L["prompts"]["topic_generation"].format(
@@ -357,7 +357,12 @@ def generate_audio(text: str, voice_model: str, output_file: str = "podcast.wav"
 # ---------------------------
 # 🎧 Full pipeline
 # ---------------------------
-def create_podcast(topic: Optional[str] = None, lang: Optional[str] = None) -> Optional[str]:
+def create_podcast(
+    topic: Optional[str] = None,
+    lang: Optional[str] = None,
+    angle: Optional[str] = None,
+    twist: Optional[str] = None,
+) -> Optional[str]:
     available = scan_languages()
 
     if lang is None:
@@ -378,8 +383,22 @@ def create_podcast(topic: Optional[str] = None, lang: Optional[str] = None) -> O
     msgs = L["log_messages"]
     log.info(msgs["language_selected"])
 
+    # Log overrides so the user knows what was injected
+    if angle:
+        log.info(f"🎯 Angle override : {angle}")
+    if twist:
+        log.info(f"🌀 Twist override  : {twist}")
+
     if not topic:
-        topic = generate_topic(L)
+        # topic is generated; angle/twist may be injected or random
+        topic = generate_topic(L, angle=angle, twist=twist)
+    else:
+        # topic is fixed; angle/twist are informational — append them to guide
+        # the LLM implicitly by enriching the topic string passed downstream.
+        if angle or twist:
+            extras = " — ".join(filter(None, [angle, twist]))
+            topic = f"{topic} ({extras})"
+            log.info(f"📌 Enriched topic : {topic}")
 
     log.info(f"\n🎯 Topic: {topic}\n")
     log.info(msgs["generating_content"])
@@ -408,16 +427,32 @@ def create_podcast(topic: Optional[str] = None, lang: Optional[str] = None) -> O
 # ---------------------------
 # 🚀 Entry point
 # ---------------------------
+def _pop_arg(args: list, flag: str) -> tuple[Optional[str], list]:
+    """Extract --flag value from an args list. Returns (value_or_None, remaining_args)."""
+    if flag in args:
+        idx = args.index(flag)
+        if idx + 1 < len(args):
+            value = args[idx + 1]
+            return value, args[:idx] + args[idx + 2:]
+        # Flag present but no value — just drop the flag
+        return None, args[:idx] + args[idx + 1:]
+    return None, args
+
+
 if __name__ == "__main__":
     args = sys.argv[1:]
-    lang_arg = None
-    topic_arg = None
 
-    if "--lang" in args:
-        idx = args.index("--lang")
-        if idx + 1 < len(args):
-            lang_arg = args[idx + 1].lower()
-        args = args[:idx] + args[idx + 2:]
+    lang_arg,  args = _pop_arg(args, "--lang")
+    topic_arg, args = _pop_arg(args, "--topic")
+    angle_arg, args = _pop_arg(args, "--angle")
+    twist_arg, args = _pop_arg(args, "--twist")
 
-    topic_arg = " ".join(args) if args else None
-    create_podcast(topic=topic_arg, lang=lang_arg)
+    if lang_arg:
+        lang_arg = lang_arg.lower()
+
+    # Backward-compat: leftover positional args are treated as the topic
+    if args:
+        leftover = " ".join(args)
+        topic_arg = f"{topic_arg} {leftover}".strip() if topic_arg else leftover
+
+    create_podcast(topic=topic_arg, lang=lang_arg, angle=angle_arg, twist=twist_arg)

@@ -6,7 +6,7 @@ Automatic technical podcast generator in French and English. The script picks a 
 
 ## How it works
 
-1. **Topic generation** — a topic, editorial angle, and context are picked randomly (or provided manually)
+1. **Topic generation** — a topic, editorial angle, and context are picked randomly (or provided manually via `--angle` and `--twist`)
 2. **Outline** — the LLM generates a plan with 4 to 6 distinct sections
 3. **Writing** — intro, sections, and conclusion are written sequentially; each section is aware of what was already covered to avoid repetition
 4. **Text-to-speech** — the script is converted to `.wav` by Piper TTS using the best available voice for the selected language
@@ -78,8 +78,12 @@ Python dependencies are installed automatically in a `.venv\` virtualenv on firs
 ./run.sh --lang en
 
 # Custom topic
-./run.sh --lang fr "La conteneurisation dans les environnements critiques"
-./run.sh --lang en "Containerization in critical environments"
+./run.sh --lang fr --topic "La conteneurisation dans les environnements critiques"
+./run.sh --lang en --topic "Containerization in critical environments"
+
+# Custom angle and/or twist (combined with a random or explicit topic)
+./run.sh --lang fr --angle "angle critique" --twist "dans un contexte industriel"
+./run.sh --lang en --topic "Rust programming language" --angle "security angle" --twist "from a beginner perspective"
 ```
 
 ### Windows
@@ -93,9 +97,24 @@ run.bat --lang fr
 run.bat --lang en
 
 :: Custom topic
-run.bat --lang fr "La conteneurisation dans les environnements critiques"
-run.bat --lang en "Containerization in critical environments"
+run.bat --lang fr --topic "La conteneurisation dans les environnements critiques"
+run.bat --lang en --topic "Containerization in critical environments"
+
+:: Custom angle and/or twist
+run.bat --lang fr --angle "angle critique" --twist "dans un contexte industriel"
+run.bat --lang en --topic "Rust programming language" --angle "security angle" --twist "from a beginner perspective"
 ```
+
+### CLI arguments
+
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `--lang` | Language code (e.g. `fr`, `en`) | Interactive menu |
+| `--topic` | Topic for the episode | Random from `lang/*.json` |
+| `--angle` | Editorial angle (e.g. `"historical angle"`) | Random from `lang/*.json` |
+| `--twist` | Contextual modifier (e.g. `"in an industrial context"`) | Random from `lang/*.json` |
+
+All arguments are optional and can be combined freely. Any argument not provided falls back to a random value from the active language file.
 
 ### Output files
 
@@ -137,7 +156,7 @@ The following parameters can be adjusted in `main.py`:
 - **`MODEL`** — Ollama model used (default: `gemma3n`)
 - **`MAX_RETRIES`** — number of retries on LLM failure (default: `3`)
 
-Everything else — topics, angles, prompts, style, voice model — lives in the language files under `lang/`.
+Everything else — topics, angles, twists, prompts, style, voice model — lives in the language files under `lang/`.
 
 ---
 
@@ -207,7 +226,7 @@ Open any language file and edit the relevant arrays directly.
 ]
 ```
 
-**`angles`** — the editorial lens applied to the chosen topic:
+**`angles`** — the editorial lens applied to the chosen topic. Can also be set at runtime with `--angle`:
 
 ```json
 "angles": [
@@ -218,7 +237,7 @@ Open any language file and edit the relevant arrays directly.
 ]
 ```
 
-**`twists`** — a contextual modifier combined with the topic and angle to make each episode more specific:
+**`twists`** — a contextual modifier combined with the topic and angle to make each episode more specific. Can also be set at runtime with `--twist`:
 
 ```json
 "twists": [
@@ -228,7 +247,7 @@ Open any language file and edit the relevant arrays directly.
 ]
 ```
 
-The LLM picks one value from each list at random and combines them into a generation prompt. Adding more values increases variety; removing values narrows the output to your preferred themes.
+The LLM picks one value from each list at random and combines them into a generation prompt — unless overridden via `--angle` or `--twist` on the command line. Adding more values increases variety; removing values narrows the output to your preferred themes.
 
 ---
 
