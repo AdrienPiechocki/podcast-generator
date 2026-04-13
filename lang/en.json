@@ -106,7 +106,6 @@
     "generating_content": "🧠 Generating content...",
     "generating_audio": "🎙️ Generating audio...",
     "text_saved": "📄 Text saved: {path}",
-    "podcast_done": "✅ Podcast generated: {path}",
-    "audio_missing": "⚠️ Audio not generated. Text available at podcast_text.txt"
+    "podcast_done": "✅ Podcast generated: {path}"
   }
 }
