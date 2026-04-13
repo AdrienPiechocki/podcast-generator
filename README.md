@@ -21,7 +21,6 @@ Automatic technical podcast generator in French and English. The script picks a 
 | Python 3.9+ | Run the script | [python.org](https://www.python.org/downloads/) |
 | [Ollama](https://ollama.com) | Local LLM | See platform instructions below |
 | `gemma3n` model | Text generation | `ollama pull gemma3n` |
-| `curl` or `wget` | Voice model download | Included on most systems |
 
 ---
 
@@ -60,8 +59,6 @@ ollama pull gemma3n
 ```
 
 Python dependencies are installed automatically in a `.venv\` virtualenv on first run.
-
-> **Note:** `curl.exe` is bundled with Windows 10+. If voice model downloads fail, PowerShell's `Invoke-WebRequest` is used as a fallback automatically.
 
 ---
 
