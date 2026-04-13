@@ -9,7 +9,7 @@ Automatic technical podcast generator in French and English. The script picks a 
 1. **Topic generation** — a topic, editorial angle, and context are picked randomly (or provided manually via `--angle` and `--twist`)
 2. **Outline** — the LLM generates a plan with 4 to 6 distinct sections
 3. **Writing** — intro, sections, and conclusion are written sequentially; each section is aware of what was already covered to avoid repetition
-4. **Text-to-speech** — the script is converted to `.wav` by `edge-tts` TTS using the best available voice for the selected language
+4. **Text-to-speech** — the script is converted to `.wav` by `edge-tts` using one of the available voices for the selected language
 5. **Output** — the raw text is always saved to `podcast_text.txt`, audio to `podcast.wav`
 
 ---
