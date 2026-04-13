@@ -105,68 +105,6 @@ if errorlevel 1 (
     call :warn "Install it from https://ollama.com, then run: ollama pull gemma3n"
 )
 
-:: ---------- Piper model download -------------------------------------------
-set "PIPER_HF=https://huggingface.co/rhasspy/piper-voices/resolve/main"
-set "MODELS_DIR=%SCRIPT_DIR%\models"
-if not exist "!MODELS_DIR!\" mkdir "!MODELS_DIR!"
-
-:: Download helper — usage: call :download_if_missing "dest_path" "url"
-goto :after_download_fn
-
-:download_if_missing
-set "_dest=%~1"
-set "_url=%~2"
-for %%F in ("!_dest!") do set "_name=%%~nxF"
-
-if not exist "!_dest!" (
-    call :log "Downloading !_name!..."
-    where curl.exe >nul 2>&1
-    if not errorlevel 1 (
-        curl.exe -L --progress-bar -o "!_dest!" "!_url!"
-        if errorlevel 1 (
-            call :err "Failed to download !_name!"
-            exit /b 1
-        )
-    ) else (
-        where powershell.exe >nul 2>&1
-        if not errorlevel 1 (
-            powershell.exe -NoProfile -Command ^
-                "Invoke-WebRequest -Uri '!_url!' -OutFile '!_dest!' -UseBasicParsing"
-            if errorlevel 1 (
-                call :err "Failed to download !_name!"
-                exit /b 1
-            )
-        ) else (
-            call :err "Neither curl nor PowerShell found. Cannot download !_name!"
-            exit /b 1
-        )
-    )
-    call :ok "!_name! downloaded"
-) else (
-    call :ok "!_name! already present"
-)
-exit /b 0
-
-:after_download_fn
-
-call :log "Checking Piper voice models..."
-
-:: French
-call :download_if_missing ^
-    "!MODELS_DIR!\fr_FR-siwis-medium.onnx" ^
-    "!PIPER_HF!/fr/fr_FR/siwis/medium/fr_FR-siwis-medium.onnx"
-call :download_if_missing ^
-    "!MODELS_DIR!\fr_FR-siwis-medium.onnx.json" ^
-    "!PIPER_HF!/fr/fr_FR/siwis/medium/fr_FR-siwis-medium.onnx.json"
-
-:: English
-call :download_if_missing ^
-    "!MODELS_DIR!\en_US-lessac-medium.onnx" ^
-    "!PIPER_HF!/en/en_US/lessac/medium/en_US-lessac-medium.onnx"
-call :download_if_missing ^
-    "!MODELS_DIR!\en_US-lessac-medium.onnx.json" ^
-    "!PIPER_HF!/en/en_US/lessac/medium/en_US-lessac-medium.onnx.json"
-
 :: ---------- Launch ---------------------------------------------------------
 call :log "Starting podcast generator..."
 echo.

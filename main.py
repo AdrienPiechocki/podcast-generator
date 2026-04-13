@@ -1,5 +1,5 @@
-import wave
-from piper import PiperVoice
+import asyncio
+import edge_tts
 import re
 import ollama
 import os
@@ -336,23 +336,11 @@ def clean_title(title: str) -> str:
     return title.strip()
 
 # ---------------------------
-# 🔊 Piper TTS
+# 🔊 Generate TTS
 # ---------------------------
-def generate_audio(text: str, voice_model: str, output_file: str = "podcast.wav") -> Optional[str]:
-    if not os.path.exists(voice_model):
-        log.error(f"Piper model not found: {voice_model}")
-        return None
-
-    try:
-        voice = PiperVoice.load(voice_model)
-        with wave.open(output_file, "wb") as wav_file:
-            voice.synthesize_wav(text, wav_file)
-
-        log.info(f"Audio generated: {output_file}")
-        return output_file
-    except Exception as e:
-        log.error(f"Audio generation failed: {e}")
-        return None
+async def generate_audio(text: str, voice_model: str, output_file: str = "podcast.wav") -> Optional[str]:
+    communicate = edge_tts.Communicate(text, voice=voice_model)
+    await communicate.save(output_file)
 
 # ---------------------------
 # 🎧 Full pipeline
@@ -362,7 +350,7 @@ def create_podcast(
     lang: Optional[str] = None,
     angle: Optional[str] = None,
     twist: Optional[str] = None,
-) -> Optional[str]:
+):
     available = scan_languages()
 
     if lang is None:
@@ -415,14 +403,8 @@ def create_podcast(
     log.info(msgs["generating_audio"])
 
     audio_path = os.path.join(output_dir, "podcast.wav")
-    audio_file = generate_audio(content, L["piper_voice"], output_file=audio_path)
-
-    if audio_file:
-        log.info(msgs["podcast_done"].format(path=audio_file))
-        return audio_file
-    else:
-        log.warning(msgs["audio_missing"])
-        return text_file
+    asyncio.run(generate_audio(content, L["voice_model"], output_file=audio_path))
+    log.info(msgs["podcast_done"].format(path=audio_path))
 
 # ---------------------------
 # 🚀 Entry point

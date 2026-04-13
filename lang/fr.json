@@ -79,7 +79,7 @@
     "avec une dépendance zéro aux services externes"
   ],
   "target_style": "Style attendu :\n- Ton journalistique neutre et posé, ni trop familier ni trop académique\n- Phrases courtes, rythme oral mais sans exclamations ou interpellations du type \"Écoutez bien !\"\n- Pas de \"on\" de connivence excessive ; préférer \"nous\" ou la forme impersonnelle\n- Terminer sur une phrase complète, jamais en milieu de pensée",
-  "piper_voice": "./models/fr_FR-siwis-medium.onnx",
+  "voice_model": "fr-FR-DeniseNeural",
   "fallback": {
     "topic": "Linux : angle historique",
     "outline": ["Contexte et origines", "État de l'art", "Enjeux techniques", "Cas d'usage", "Perspectives"],
@@ -107,6 +107,6 @@
     "generating_audio": "🎙️ Génération de l'audio...",
     "text_saved": "📄 Texte sauvegardé : {path}",
     "podcast_done": "✅ Podcast généré : {path}",
-    "audio_missing": "⚠️ Audio non généré (Piper manquant ?). Texte disponible dans podcast_text.txt"
+    "audio_missing": "⚠️ Audio non généré. Texte disponible dans podcast_text.txt"
   }
 }

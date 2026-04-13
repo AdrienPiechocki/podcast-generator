@@ -1,6 +1,6 @@
 # 🎙️ Podcast Generator
 
-Automatic technical podcast generator in French and English. The script picks a topic, writes a full script via a local LLM, then synthesizes it to audio with Piper TTS.
+Automatic technical podcast generator in French and English. The script picks a topic, writes a full script via a local LLM, then synthesizes it to audio with EdgeTTS.
 
 ---
 
@@ -9,7 +9,7 @@ Automatic technical podcast generator in French and English. The script picks a 
 1. **Topic generation** — a topic, editorial angle, and context are picked randomly (or provided manually via `--angle` and `--twist`)
 2. **Outline** — the LLM generates a plan with 4 to 6 distinct sections
 3. **Writing** — intro, sections, and conclusion are written sequentially; each section is aware of what was already covered to avoid repetition
-4. **Text-to-speech** — the script is converted to `.wav` by Piper TTS using the best available voice for the selected language
+4. **Text-to-speech** — the script is converted to `.wav` by `edge-tts` TTS using the best available voice for the selected language
 5. **Output** — the raw text is always saved to `podcast_text.txt`, audio to `podcast.wav`
 
 ---
@@ -121,7 +121,7 @@ All arguments are optional and can be combined freely. Any argument not provided
 | File | Content |
 |------|---------|
 | `podcast_text.txt` | Full podcast script (always generated) |
-| `podcast.wav` | Synthesized audio (if Piper TTS is available) |
+| `podcast.wav` | Synthesized audio (if Edge TTS is available) |
 
 ---
 
@@ -137,11 +137,6 @@ All arguments are optional and can be combined freely. Any argument not provided
 │   ├── en.json           # English
 │   ├── fr.json           # French
 │   └── *.json            # Any custom language you add
-├── models/               # Piper voice models (auto-downloaded)
-│   ├── fr_FR-siwis-medium.onnx
-│   ├── fr_FR-siwis-medium.onnx.json
-│   ├── en_US-lessac-medium.onnx
-│   └── en_US-lessac-medium.onnx.json
 ├── .venv/                # Virtualenv (auto-created)
 ├── podcast_text.txt      # Text output (created at runtime)
 └── podcast.wav           # Audio output (created at runtime)
@@ -181,18 +176,12 @@ Languages are defined as JSON files in the `lang/` folder. Any `.json` file plac
    | `angles` | List of editorial angles (e.g. historical, critical, comparative) |
    | `twists` | List of contextual modifiers (e.g. "in an industrial context") |
    | `target_style` | Tone and style instructions passed to the LLM for every section |
-   | `piper_voice` | Path to the Piper `.onnx` voice model for this language |
+   | `voice_model` | voice model for this language |
    | `fallback` | Default values used when the LLM returns nothing (see below) |
    | `prompts` | All LLM prompt templates (see below) |
    | `log_messages` | Console messages displayed during generation |
 
-3. Download a matching Piper voice model for your language from [Hugging Face](https://huggingface.co/rhasspy/piper-voices) and place the `.onnx` and `.onnx.json` files in the `models/` folder. Update the `piper_voice` field in your JSON to point to it:
-
-   ```json
-   "piper_voice": "./models/de_DE-thorsten-medium.onnx"
-   ```
-
-4. Run the script — your language will appear in the menu automatically:
+3. Run the script — your language will appear in the menu automatically:
 
    ```
    🌐 Langue / Language:
@@ -296,12 +285,6 @@ Make sure the service is running:
 - **Windows:** Ollama runs as a background service after installation. If it is not responding, relaunch it from the Start menu or run `ollama serve` in a terminal.
 
 If the model is not yet downloaded: `ollama pull gemma3n`.
-
-### Voice model download fails
-
-Check your connection, then download the `.onnx` and `.onnx.json` files manually from [Hugging Face](https://huggingface.co/rhasspy/piper-voices) and place them in the `models/` folder.
-
-On Windows, if `curl.exe` is unavailable, the script falls back to PowerShell's `Invoke-WebRequest` automatically.
 
 ### LLM response truncated
 

@@ -68,51 +68,6 @@ if ! command -v ollama &>/dev/null; then
     warn "Install it from https://ollama.com, then run: ollama pull gemma3n"
 fi
 
-# ---------- Piper model download -------------------------------------------
-# Each entry is: "filename|base_url"
-# The .onnx and its .onnx.json config are downloaded automatically for each.
-PIPER_HF="https://huggingface.co/rhasspy/piper-voices/resolve/main"
-PIPER_MODELS=(
-    # French
-    "fr_FR-siwis-medium.onnx|$PIPER_HF/fr/fr_FR/siwis/medium"
-    # English
-    "en_US-lessac-medium.onnx|$PIPER_HF/en/en_US/lessac/medium"
-)
-
-MODELS_DIR="$SCRIPT_DIR/models"
-mkdir -p "$MODELS_DIR"
-
-download_if_missing() {
-    local dest="$1"
-    local url="$2"
-    local name
-    name="$(basename "$dest")"
-    if [ ! -f "$dest" ]; then
-        log "Downloading $name..."
-        if command -v curl &>/dev/null; then
-            curl -L --progress-bar -o "$dest" "$url" \
-                || { err "Failed to download $name"; exit 1; }
-        elif command -v wget &>/dev/null; then
-            wget -q --show-progress -O "$dest" "$url" \
-                || { err "Failed to download $name"; exit 1; }
-        else
-            err "Neither curl nor wget found. Cannot download $name."
-            exit 1
-        fi
-        ok "$name downloaded"
-    else
-        ok "$name already present"
-    fi
-}
-
-log "Checking Piper voice models..."
-for entry in "${PIPER_MODELS[@]}"; do
-    model_file="${entry%%|*}"
-    base_url="${entry##*|}"
-    download_if_missing "$MODELS_DIR/$model_file"       "$base_url/$model_file"
-    download_if_missing "$MODELS_DIR/$model_file.json"  "$base_url/$model_file.json"
-done
-
 # ---------- Launch ---------------------------------------------------------
 log "Starting podcast generator..."
 echo ""

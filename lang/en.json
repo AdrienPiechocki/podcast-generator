@@ -79,7 +79,7 @@
     "With Zero Dependency on External Services"
   ],
   "target_style": "Expected style:\n- Neutral, measured journalistic tone, neither too casual nor too academic\n- Short sentences, oral rhythm but without exclamations or prompts like \"Listen up!\"\n- Avoid excessive use of \"you guys\"; prefer \"we\" or impersonal forms\n- Always end on a complete sentence, never mid-thought",
-  "piper_voice": "./models/en_US-lessac-medium.onnx",
+  "voice_model": "en-US-AvaNeural",
   "fallback": {
     "topic": "Linux: historical angle",
     "outline": ["Context and Origins", "State of the Art", "Technical Challenges", "Use Cases", "Perspectives"],
@@ -107,6 +107,6 @@
     "generating_audio": "🎙️ Generating audio...",
     "text_saved": "📄 Text saved: {path}",
     "podcast_done": "✅ Podcast generated: {path}",
-    "audio_missing": "⚠️ Audio not generated (Piper missing?). Text available at podcast_text.txt"
+    "audio_missing": "⚠️ Audio not generated. Text available at podcast_text.txt"
   }
 }
