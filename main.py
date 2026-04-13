@@ -344,7 +344,7 @@ def generate_audio(text: str, voice_model: str, output_file: str = "podcast.wav"
         return None
 
     try:
-        voice = PiperVoice.load(model)
+        voice = PiperVoice.load(voice_model)
         with wave.open(output_file, "wb") as wav_file:
             voice.synthesize_wav(text, wav_file)
 
