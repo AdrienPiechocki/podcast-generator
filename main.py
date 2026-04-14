@@ -342,6 +342,50 @@ async def generate_audio(text: str, voice_model: str, output_file: str = "podcas
     communicate = edge_tts.Communicate(text, voice=voice_model)
     await communicate.save(output_file)
 
+
+def generate_smart_subtitles(
+    audio_path: str,
+    text: str,
+    output_srt: str = "podcast.srt"
+):
+    import whisper
+    import re
+
+    log.info("🧠 Generating subtitles (Whisper + smart align)...")
+
+    model = whisper.load_model("base")
+    result = model.transcribe(audio_path)
+
+    # 🔹 Découpe ton texte en phrases propres
+    sentences = re.split(r'(?<=[.!?])\s+', text.strip())
+    sentences = [s.strip() for s in sentences if s.strip()]
+
+    segments = result["segments"]
+
+    def format_time(t):
+        h = int(t // 3600)
+        m = int((t % 3600) // 60)
+        s = int(t % 60)
+        ms = int((t - int(t)) * 1000)
+        return f"{h:02}:{m:02}:{s:02},{ms:03}"
+
+    with open(output_srt, "w", encoding="utf-8") as f:
+        for i, seg in enumerate(segments):
+            start = seg["start"]
+            end = seg["end"]
+
+            # 🔹 On map phrase → segment (propre)
+            if i < len(sentences):
+                line = sentences[i]
+            else:
+                line = seg["text"]
+
+            f.write(f"{i+1}\n")
+            f.write(f"{format_time(start)} --> {format_time(end)}\n")
+            f.write(f"{line}\n\n")
+
+    log.info(f"✅ Subtitles saved: {output_srt}")
+
 # ---------------------------
 # 🎧 Full pipeline
 # ---------------------------
@@ -406,6 +450,14 @@ def create_podcast(
     asyncio.run(generate_audio(content, L["voice_model"], output_file=audio_path))
     log.info(msgs["podcast_done"].format(path=audio_path))
 
+    # 📝 subtitles aligned
+    srt_path = os.path.join(output_dir, "podcast.srt")
+    generate_smart_subtitles(
+        audio_path=audio_path,
+        text=content,
+        output_srt=srt_path
+    )
+    
 # ---------------------------
 # 🚀 Entry point
 # ---------------------------
