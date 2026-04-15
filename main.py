@@ -338,53 +338,28 @@ def clean_title(title: str) -> str:
 # ---------------------------
 # 🔊 Generate TTS
 # ---------------------------
-async def generate_audio(text: str, voice_model: str, output_file: str = "podcast.wav") -> Optional[str]:
-    communicate = edge_tts.Communicate(text, voice=voice_model)
-    await communicate.save(output_file)
+async def generate_audio_and_subs(text, voice, audio_path, srt_path):
+    communicate = edge_tts.Communicate(text, voice)
+    submaker = edge_tts.SubMaker()
 
+    with open(audio_path, "wb") as f:
+        async for chunk in communicate.stream():
+            if chunk["type"] == "audio":
+                f.write(chunk["data"])
+            # MODIFICATION ICI : On accepte les phrases si les mots sont absents
+            elif chunk["type"] in ["WordBoundary", "SentenceBoundary"]:
+                submaker.feed(chunk)
 
-def generate_smart_subtitles(
-    audio_path: str,
-    text: str,
-    output_srt: str = "podcast.srt"
-):
-    import whisper
-    import re
+    # On vérifie si on a récupéré quelque chose
+    subtitles = submaker.get_srt()
 
-    log.info("🧠 Generating subtitles (Whisper + smart align)...")
-
-    model = whisper.load_model("base")
-    result = model.transcribe(audio_path)
-
-    # 🔹 Découpe ton texte en phrases propres
-    sentences = re.split(r'(?<=[.!?])\s+', text.strip())
-    sentences = [s.strip() for s in sentences if s.strip()]
-
-    segments = result["segments"]
-
-    def format_time(t):
-        h = int(t // 3600)
-        m = int((t % 3600) // 60)
-        s = int(t % 60)
-        ms = int((t - int(t)) * 1000)
-        return f"{h:02}:{m:02}:{s:02},{ms:03}"
-
-    with open(output_srt, "w", encoding="utf-8") as f:
-        for i, seg in enumerate(segments):
-            start = seg["start"]
-            end = seg["end"]
-
-            # 🔹 On map phrase → segment (propre)
-            if i < len(sentences):
-                line = sentences[i]
-            else:
-                line = seg["text"]
-
-            f.write(f"{i+1}\n")
-            f.write(f"{format_time(start)} --> {format_time(end)}\n")
-            f.write(f"{line}\n\n")
-
-    log.info(f"✅ Subtitles saved: {output_srt}")
+    with open(srt_path, "w", encoding="utf-8") as f:
+        if srt_path.endswith(".vtt"):
+            f.write("WEBVTT\n\n")
+            vtt_content = re.sub(r'(\d),(\d)', r'\1.\2', subtitles)
+            f.write(vtt_content)
+        else:
+            f.write(subtitles)
 
 # ---------------------------
 # 🎧 Full pipeline
@@ -447,16 +422,9 @@ def create_podcast(
     log.info(msgs["generating_audio"])
 
     audio_path = os.path.join(output_dir, "podcast.wav")
-    asyncio.run(generate_audio(content, L["voice_model"], output_file=audio_path))
+    srt_path = os.path.join(output_dir, "podcast.vtt")
+    asyncio.run(generate_audio_and_subs(content, L["voice_model"], audio_path, srt_path))
     log.info(msgs["podcast_done"].format(path=audio_path))
-
-    # 📝 subtitles aligned
-    srt_path = os.path.join(output_dir, "podcast.srt")
-    generate_smart_subtitles(
-        audio_path=audio_path,
-        text=content,
-        output_srt=srt_path
-    )
     
 # ---------------------------
 # 🚀 Entry point
