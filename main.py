@@ -299,7 +299,8 @@ def generate_full_content(topic: str, L: dict) -> str:
     log.info(msgs["generating_intro"])
     intro = generate_intro(topic, outline, L)
     sections.append(intro)
-
+    processed_sections.append(intro)
+    
     for i, section in enumerate(outline):
         log.info(msgs["generating_section"].format(i=i + 1, total=len(outline), section=section))
         text = generate_section(topic, section, processed_sections, L)
