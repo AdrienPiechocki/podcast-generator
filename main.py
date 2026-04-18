@@ -100,13 +100,13 @@ state = PodcastState()
 # ---------------------------
 TRUNCATION_PATTERN = re.compile(
     r'(,\s*$|\b(et|ou|mais|car|donc|ainsi|notamment|comme|parce|lorsque|que'
-    r'|and|or|but|because|so|thus|notably|as|when|that)\s*$'
-    r'|[a-zéèêàùîïôâ]\s*$)',
+    r'|and|or|but|because|so|thus|notably|as|when|that)\s*$)',
     re.IGNORECASE
 )
 
 def call_llm(prompt: str, temperature: float = 1.0, max_tokens: int = 1024) -> Optional[str]:
-    """Call Ollama with retry logic and truncation detection."""
+    current_max_tokens = max_tokens
+
     for attempt in range(1, MAX_RETRIES + 1):
         try:
             response = ollama.chat(
@@ -116,7 +116,7 @@ def call_llm(prompt: str, temperature: float = 1.0, max_tokens: int = 1024) -> O
                     "temperature": temperature,
                     "top_p": 0.95,
                     "repeat_penalty": 1.2,
-                    "num_predict": max_tokens,
+                    "num_predict": current_max_tokens,
                 }
             )
             content = response["message"]["content"].strip()
@@ -124,13 +124,24 @@ def call_llm(prompt: str, temperature: float = 1.0, max_tokens: int = 1024) -> O
                 raise ValueError("Empty response from model")
 
             last_line = content.split("\n")[-1].strip()
-            closing_tag_missing = "[/" not in content[-100:]
-            if TRUNCATION_PATTERN.search(last_line) and closing_tag_missing:
-                log.warning(f"Response likely truncated (max_tokens={max_tokens}), retrying with {max_tokens * 2}")
-                max_tokens = max_tokens * 2
+
+            # Only flag truncation on unambiguous dangling conjunctions/commas
+            dangling = TRUNCATION_PATTERN.search(last_line)
+
+            # Only flag missing closing tag if the response contains opening tags
+            has_opening_tag = bool(re.search(r'\[[A-Z]\]', content))
+            closing_tag_missing = has_opening_tag and "[/" not in content[-200:]
+
+            if dangling or closing_tag_missing:
+                log.warning(
+                    f"Response likely truncated (attempt {attempt}, "
+                    f"max_tokens={current_max_tokens}), retrying with {current_max_tokens * 2}"
+                )
+                current_max_tokens *= 2
                 continue
 
             return content
+
         except Exception as e:
             log.warning(f"Attempt {attempt}/{MAX_RETRIES} failed: {e}")
 
@@ -189,9 +200,24 @@ def generate_topic(L: dict, angle: Optional[str] = None, twist: Optional[str] = 
 
     titles = [clean_title(t).split("\n")[0][:120] for t in titles if t]
     fresh_titles = [t for t in titles if t not in state.generated_titles]
-    chosen = random.choice(fresh_titles if fresh_titles else titles) if titles else L["fallback"]["topic"]
+    chosen = chose_topic(fresh_titles if fresh_titles else titles, L, angle, twist) if titles else L["fallback"]["topic"]
     state.generated_titles.add(chosen)
     return chosen
+
+def chose_topic(topics: list, L: dict, angle: str, twist: str):
+    formatted = "\n".join(f"- {t}" for t in topics)
+    prompt = L["prompts"]["topic_choice"].format(topics=formatted)
+
+    chosen = call_llm(prompt, temperature=0.7)
+    if not chosen:
+        return random.choice(topics) if topics else L["fallback"]["topic"]
+
+    if "[REGENERATE]" in chosen:
+        log.info("Retrying new titles")
+        return generate_topic(L, angle, twist)
+
+    chosen = clean_title(chosen)
+    return chosen if chosen else random.choice(topics)
 
 # ---------------------------
 # 📋 Outline generation
