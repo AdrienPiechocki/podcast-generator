@@ -209,3 +209,4 @@ __marimo__/
 
 models/
 podcast*
+.podcast_history.json

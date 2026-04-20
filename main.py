@@ -26,6 +26,9 @@ log = logging.getLogger(__name__)
 MODEL = "gemma3n"
 MAX_RETRIES = 3
 LANG_DIR = os.path.join(os.path.dirname(__file__), "lang")
+HISTORY_SIZE = 3
+HISTORY_FILE = os.path.join(os.path.dirname(__file__), ".podcast_history.json")
+TITLES_PER_GENERATION = 5  # number of candidate titles generated, each with its own random topic seed
 
 # ---------------------------
 # 🌐 Language loading
@@ -87,13 +90,21 @@ def pick_language(available: dict[str, str]) -> str:
         print(f"  ⚠️  Please enter a number between 1 and {len(codes)}, or a language code.")
 
 # ---------------------------
-# 📦 Global state
+# 📋 History persistence
 # ---------------------------
-@dataclass
-class PodcastState:
-    generated_titles: set = field(default_factory=set)
+def load_history() -> list[str]:
+    """Load the sliding window of recently generated topics from disk."""
+    try:
+        with open(HISTORY_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, list) else []
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
 
-state = PodcastState()
+def save_history(history: list[str]) -> None:
+    """Persist the last HISTORY_SIZE topics to disk."""
+    with open(HISTORY_FILE, "w", encoding="utf-8") as f:
+        json.dump(history[-HISTORY_SIZE:], f, ensure_ascii=False, indent=2)
 
 # ---------------------------
 # 🔧 LLM utilities
@@ -163,11 +174,12 @@ def extract_tag_list(text: str, tag: str) -> list[str]:
 # ---------------------------
 # 🧠 Topic generation
 # ---------------------------
-def generate_topic(L: dict, angle: Optional[str] = None, twist: Optional[str] = None) -> str:
+def _generate_one_title(L: dict, angle: str, twist: str) -> Optional[str]:
+    """Single LLM call with its own randomly drawn topic seed. Returns one cleaned title or None."""
     topic = random.choice(L["topics"])
-    angle = angle if angle is not None else random.choice(L["angles"])
-    twist = twist if twist is not None else random.choice(L["twists"])
-    seed = random.randint(0, 100000)
+    angle   = angle if angle is not None else random.choice(L["angles"])
+    twist   = twist if twist is not None else random.choice(L["twists"])
+    seed  = random.randint(0, 100000)
 
     prompt = L["prompts"]["topic_generation"].format(
         seed=seed, topic=topic, twist=twist, angle=angle
@@ -175,11 +187,14 @@ def generate_topic(L: dict, angle: Optional[str] = None, twist: Optional[str] = 
 
     raw = call_llm(prompt, temperature=1.2)
     if not raw:
-        return L["fallback"]["topic"]
+        return None
 
+    # Try structured tag first
     titles = extract_tag_list(raw, "T")
+
+    # Fallback: parse lines
     if not titles:
-        log.debug(f"Tag extraction failed (fallback active), raw output:\n{raw[:500]}")
+        log.debug(f"Tag extraction failed, raw output:\n{raw[:500]}")
         lines = [l.strip() for l in raw.split("\n") if l.strip()]
         titles = []
         for line in lines:
@@ -198,15 +213,56 @@ def generate_topic(L: dict, angle: Optional[str] = None, twist: Optional[str] = 
             if 10 < len(line) < 120 and not line.startswith("["):
                 titles.append(clean_title(line))
 
-    titles = [clean_title(t).split("\n")[0][:120] for t in titles if t]
-    fresh_titles = [t for t in titles if t not in state.generated_titles]
-    chosen = chose_topic(fresh_titles if fresh_titles else titles, L, angle, twist) if titles else L["fallback"]["topic"]
-    state.generated_titles.add(chosen)
+    cleaned = [clean_title(t).split("\n")[0][:120] for t in titles if t]
+    return cleaned[0] if cleaned else None
+
+
+def generate_topic(
+    L: dict,
+    angle: Optional[str] = None,
+    twist: Optional[str] = None,
+    history: Optional[list[str]] = None,
+) -> str:
+    history = history or []
+
+    # Each call draws its own random topic from L["topics"]
+    titles = []
+    for i in range(TITLES_PER_GENERATION):
+        t = _generate_one_title(L, angle, twist)
+        if t:
+            titles.append(t)
+            log.debug(f"Candidate {i + 1}/{TITLES_PER_GENERATION}: {t}")
+
+    if not titles:
+        return L["fallback"]["topic"]
+
+    fresh_titles = [t for t in titles if t not in history]
+
+    chosen = chose_topic(
+        fresh_titles if fresh_titles else titles,
+        L, angle, twist, history=history,
+    )
+
+    updated_history = (history + [chosen])[-HISTORY_SIZE:]
+    save_history(updated_history)
+
     return chosen
 
-def chose_topic(topics: list, L: dict, angle: str, twist: str):
+def chose_topic(
+    topics: list,
+    L: dict,
+    angle: str,
+    twist: str,
+    history: Optional[list[str]] = None,
+):
     formatted = "\n".join(f"- {t}" for t in topics)
-    prompt = L["prompts"]["topic_choice"].format(topics=formatted)
+
+    avoid_block = ""
+    if history:
+        avoid_lines = "\n".join(f"- {t}" for t in history)
+        avoid_block = L["prompts"]["avoid_block"].format(avoid=avoid_lines)
+
+    prompt = L["prompts"]["topic_choice"].format(topics=formatted) + avoid_block
 
     chosen = call_llm(prompt, temperature=0.7)
     if not chosen:
@@ -214,7 +270,7 @@ def chose_topic(topics: list, L: dict, angle: str, twist: str):
 
     if "[REGENERATE]" in chosen:
         log.info("Retrying new titles")
-        return generate_topic(L, angle, twist)
+        return generate_topic(L, angle, twist, history=history)
 
     chosen = clean_title(chosen)
     return chosen if chosen else random.choice(topics)
@@ -326,7 +382,7 @@ def generate_full_content(topic: str, L: dict) -> str:
     intro = generate_intro(topic, outline, L)
     sections.append(intro)
     processed_sections.append(intro)
-    
+
     for i, section in enumerate(outline):
         log.info(msgs["generating_section"].format(i=i + 1, total=len(outline), section=section))
         text = generate_section(topic, section, processed_sections, L)
@@ -373,11 +429,9 @@ async def generate_audio_and_subs(text, voice, audio_path, srt_path):
         async for chunk in communicate.stream():
             if chunk["type"] == "audio":
                 f.write(chunk["data"])
-            # MODIFICATION ICI : On accepte les phrases si les mots sont absents
             elif chunk["type"] in ["WordBoundary", "SentenceBoundary"]:
                 submaker.feed(chunk)
 
-    # On vérifie si on a récupéré quelque chose
     subtitles = submaker.get_srt()
 
     with open(srt_path, "w", encoding="utf-8") as f:
@@ -403,7 +457,6 @@ def create_podcast(
         if sys.stdin.isatty():
             lang = pick_language(available)
         else:
-            # Non-interactive: default to first available language
             lang = next(iter(available))
             log.warning(f"No interactive terminal, defaulting to '{lang}'.")
 
@@ -412,23 +465,22 @@ def create_podcast(
         log.warning(f"Unknown language '{lang}', falling back to '{fallback}'.")
         lang = fallback
 
-    # Load language data
     L = load_lang(lang)
     msgs = L["log_messages"]
     log.info(msgs["language_selected"])
 
-    # Log overrides so the user knows what was injected
     if angle:
         log.info(f"🎯 Angle override : {angle}")
     if twist:
         log.info(f"🌀 Twist override  : {twist}")
 
+    history = load_history()
+    if history:
+        log.debug(f"📋 Recent topics to avoid: {history}")
+
     if not topic:
-        # topic is generated; angle/twist may be injected or random
-        topic = generate_topic(L, angle=angle, twist=twist)
+        topic = generate_topic(L, angle=angle, twist=twist, history=history)
     else:
-        # topic is fixed; angle/twist are informational — append them to guide
-        # the LLM implicitly by enriching the topic string passed downstream.
         if angle or twist:
             extras = " — ".join(filter(None, [angle, twist]))
             topic = f"{topic} ({extras})"
@@ -452,7 +504,7 @@ def create_podcast(
     srt_path = os.path.join(output_dir, "podcast.vtt")
     asyncio.run(generate_audio_and_subs(content, L["voice_model"], audio_path, srt_path))
     log.info(msgs["podcast_done"].format(path=audio_path))
-    
+
 # ---------------------------
 # 🚀 Entry point
 # ---------------------------
@@ -463,7 +515,6 @@ def _pop_arg(args: list, flag: str) -> tuple[Optional[str], list]:
         if idx + 1 < len(args):
             value = args[idx + 1]
             return value, args[:idx] + args[idx + 2:]
-        # Flag present but no value — just drop the flag
         return None, args[:idx] + args[idx + 1:]
     return None, args
 
@@ -479,7 +530,6 @@ if __name__ == "__main__":
     if lang_arg:
         lang_arg = lang_arg.lower()
 
-    # Backward-compat: leftover positional args are treated as the topic
     if args:
         leftover = " ".join(args)
         topic_arg = f"{topic_arg} {leftover}".strip() if topic_arg else leftover
