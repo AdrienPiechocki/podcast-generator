@@ -326,7 +326,7 @@ def generate_section(topic: str, section: str, previous_sections: list[str], L: 
         style=L["target_style"]
     )
 
-    raw = call_llm(prompt, temperature=1.1, max_tokens=900)
+    raw = call_llm(prompt, temperature=1.0)
     if not raw:
         return L["fallback"]["section_unavailable"].format(section=section)
 
