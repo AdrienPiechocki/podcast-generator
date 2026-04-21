@@ -110,8 +110,10 @@ def save_history(history: list[str]) -> None:
 # 🔧 LLM utilities
 # ---------------------------
 TRUNCATION_PATTERN = re.compile(
-    r'(,\s*$|\b(et|ou|mais|car|donc|ainsi|notamment|comme|parce|lorsque|que'
-    r'|and|or|but|because|so|thus|notably|as|when|that)\s*$)',
+    r'(,\s*$'                          # virgule finale
+    r'|\b(parce|lorsque|because|when)\s*$'   # conjonctions de subordination incomplètes
+    r'|\b(et|ou|and|or|but)\s*$'      # coordonnants en toute fin (sans ponctuation)
+    r')',
     re.IGNORECASE
 )
 
@@ -140,13 +142,16 @@ def call_llm(prompt: str, temperature: float = 1.0, max_tokens: int = 1024) -> O
             dangling = TRUNCATION_PATTERN.search(last_line)
 
             # Only flag missing closing tag if the response contains opening tags
-            has_opening_tag = bool(re.search(r'\[[A-Z]\]', content))
-            closing_tag_missing = has_opening_tag and "[/" not in content[-200:]
+            has_opening_tag = bool(re.search(r'\[P\]', content))
+            last_open = content.rfind('[P]')
+            closing_tag_missing = has_opening_tag and '[/P]' not in content[last_open:]
 
             if dangling or closing_tag_missing:
                 log.warning(
                     f"Response likely truncated (attempt {attempt}, "
-                    f"max_tokens={current_max_tokens}), retrying with {current_max_tokens * 2}"
+                    f"max_tokens={current_max_tokens}) | "
+                    f"dangling={bool(dangling)} closing_missing={closing_tag_missing} | "
+                    f"last_line={last_line!r}"
                 )
                 current_max_tokens *= 2
                 continue
@@ -281,7 +286,7 @@ def chose_topic(
 def generate_outline(topic: str, L: dict) -> list[str]:
     prompt = L["prompts"]["outline_generation"].format(topic=topic)
 
-    raw = call_llm(prompt, temperature=1.0)
+    raw = call_llm(prompt, temperature=1.0, max_tokens=512)
     if not raw:
         log.warning("LLM returned nothing for outline, using default.")
         return L["fallback"]["outline"]
