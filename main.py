@@ -267,7 +267,7 @@ def generate_topic(L: dict, history: Optional[list[str]] = None) -> str:
     system_prompt = L["prompts"]["system_date"].format(date=date)
     prompt = L["prompts"]["topic_generation"].format(seed=seed, topic=seed_topic)
 
-    raw = call_llm(prompt, system_prompt, temperature=1.4)
+    raw = call_llm(prompt, system_prompt, temperature=1.2)
     if not raw:
         return []
 

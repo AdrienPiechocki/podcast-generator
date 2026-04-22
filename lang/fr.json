@@ -67,7 +67,7 @@
     "Génie Civil et Grands Ouvrages",
     "Théorie de la Musique",
     "Histoire de l'Art",
-    "Cinéma et Sémiologie de l'image",
+    "Cinéma",
     "Économie Circulaire",
     "Gestion de la Supply Chain",
     "États de conscience modifiés",
@@ -105,7 +105,9 @@
     "Généalogie et Paléographie",
     "Potabilisation de l'Eau",
     "Navigation Astronomique",
-    "Littérature"
+    "Littérature Romanesque",
+    "Mangas et animation japonnaise",
+    "Bande Dessinnée"
   ],
   "target_style": "Style attendu :\n- Ton journalistique neutre et posé, ni trop familier ni trop académique\n- Phrases courtes, rythme oral mais sans exclamations ou interpellations du type \"Écoutez bien !\"\n- Pas de \"on\" de connivence excessive ; préférer \"nous\" ou la forme impersonnelle\n- Terminer sur une phrase complète, jamais en milieu de pensée\n- Privilégier les faits et les exemples concrets plutôt que les avis généraux",
   "voice_model": "fr-FR-DeniseNeural",
@@ -119,7 +121,7 @@
   "prompts": {
     "system_date": "Nous sommes en {date}. ",
     "system_data": "Voilà le contexte pour les prompt: \n{context}",
-    "topic_generation": "Seed: {seed}\n\nTu dois générer un titre d'articles de podcast en français.\nSujet : {topic}\n\nRègles ABSOLUES :\n- Le titre doit être FACTUEL et ancré dans le sujet donné\n- Aucune invention, aucun hors-sujet\n\nFormat OBLIGATOIRE (exactement comme ceci) :\n[T]Titre ici[/T]",
+    "topic_generation": "Seed: {seed}\n\nTu dois générer un titre d'articles de podcast en français.\nSujet : {topic}\n\nRègles ABSOLUES :\n- Le titre doit être FACTUEL et ancré dans le sujet donné\n- Focus sur un point précis mais pas de hors-sujet\n\nFormat OBLIGATOIRE (exactement comme ceci) :\n[T]Titre ici[/T]",
     "topic_choice": "Tu dois choisir le titre le plus pertinent et réaliste pour un podcast en français.\nTitres :\n{topics}\n\nRègles :\n- Réponds UNIQUEMENT avec le titre choisi.\n- Si aucun ne convient, réponds UNIQUEMENT : [REGENERATE]",
     "outline_generation": "Tu dois créer un plan de podcast en français.\nSujet précis : {topic}\n\nRègles ABSOLUES :\n- 4 à 6 parties DISTINCTES, sans chevauchement\n- Chaque partie doit couvrir un aspect DIFFÉRENT du sujet\n- Titres courts (5 mots max)\n- Aucun markdown, aucune explication\n\nFormat OBLIGATOIRE :\n[P]Titre[/P]\n[P]Titre[/P]",
     "section_generation": "Tu es un rédacteur spécialisé.\nSujet global : {topic}\nPartie à rédiger : {section}\nN'empiète pas sur les autres parties: {other_sections}\n{style}\n\nRègles ABSOLUES :\n- 150 à 250 mots MAXIMUM.\n- ZÉRO généralités : entre directement dans les détails techniques ou les exemples concrets.\nFormat :\n[P]\nTexte ici\n[/P]\n{already_covered}",

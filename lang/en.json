@@ -67,7 +67,7 @@
     "Civil Engineering and Major Works",
     "Music Theory",
     "Art History",
-    "Film Theory and Semiotics of the Image",
+    "Film Theory",
     "Circular Economy",
     "Supply Chain Management",
     "Altered States of Consciousness",
@@ -105,7 +105,9 @@
     "Genealogy and Palaeography",
     "Water Potabilization",
     "Celestial Navigation",
-    "Literature"
+    "Romanesque Literature",
+    "Mangas et Japanese animation",
+    "Comic books"
   ],
   "target_style": "Expected style:\n- Neutral, measured journalistic tone, neither too casual nor too academic\n- Short sentences, oral rhythm but without exclamations or prompts like \"Listen up!\"\n- Avoid excessive use of \"you guys\"; prefer \"we\" or impersonal forms\n- Always end on a complete sentence, never mid-thought\n- Prioritize facts and concrete examples over general opinions",
   "voice_model": "en-US-AvaNeural",
@@ -119,7 +121,7 @@
   "prompts": {
     "system_date": "We are in {date}. ",
     "system_data": "Here is some context for the prompts: \n{context}",
-    "topic_generation": "Seed: {seed}\n\nGenerate 3 titles for a podcast episode in English.\nTopic: {topic}\n\nABSOLUTE RULES:\n- Each title must be FACTUAL and grounded in the given topic\n- No invention, no off-topic content\n- One title per line, only between tags\n- No numbering, no markdown, no parentheses\n\nMANDATORY FORMAT (exactly like this):\n[T]Title here[/T]\n[T]Title here[/T]\n[T]Title here[/T]\n[T]Title here[/T]\n[T]Title here[/T]",
+    "topic_generation": "Seed: {seed}\n\nGenerate 3 titles for a podcast episode in English.\nTopic: {topic}\n\nABSOLUTE RULES:\n- Each title must be FACTUAL and grounded in the given topic\n- Focus on a specific point but no off-topic content\n- One title per line, only between tags\n- No numbering, no markdown, no parentheses\n\nMANDATORY FORMAT (exactly like this):\n[T]Title here[/T]\n[T]Title here[/T]\n[T]Title here[/T]\n[T]Title here[/T]\n[T]Title here[/T]",
     "topic_choice": "You must choose the single most relevant and realistic title for a podcast in English.\nTitles:\n{topics}\n\nRules:\n- Reply with ONLY the chosen title.\n- If none are suitable, reply with exactly: [REGENERATE]",
     "outline_generation": "Create a plan for a podcast episode in English.\nPrecise topic: {topic}\n\nABSOLUTE RULES:\n- 4 to 6 DISTINCT sections, no overlap\n- Each section must cover a DIFFERENT aspect of the topic\n- Short titles (5 words max)\n- No markdown, no explanations\n\nMANDATORY FORMAT:\n[P]Title[/P]\n[P]Title[/P]",
     "section_generation": "You are a radio journalist and technology expert.\nOverall podcast topic: {topic}\nSection to write: {section}\n{style}\n\nABSOLUTE RULES:\n- 150 to 250 words MAXIMUM.\n- ZERO generalities: get straight to technical details or concrete examples.\nFormat:\n[P]\nText content here\n[/P]\n{already_covered}",
