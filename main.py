@@ -9,6 +9,10 @@ import logging
 import sys
 from dataclasses import dataclass, field
 from typing import Optional
+from ddgs import DDGS
+from datetime import datetime
+from babel.dates import format_date
+from contextlib import contextmanager
 
 # ---------------------------
 # 🪵 Logging
@@ -18,7 +22,26 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[logging.StreamHandler(sys.stdout)]
 )
+for name, lgr in logging.Logger.manager.loggerDict.items():
+    if isinstance(lgr, logging.Logger) and name != "__main__":
+        lgr.setLevel(logging.WARNING)
+        lgr.propagate = False
 log = logging.getLogger(__name__)
+
+@contextmanager  
+def suppress_all_output():
+    with open(os.devnull, 'w') as devnull:
+        old_out_fd = os.dup(1)
+        old_err_fd = os.dup(2)
+        os.dup2(devnull.fileno(), 1)
+        os.dup2(devnull.fileno(), 2)
+        try:
+            yield
+        finally:
+            os.dup2(old_out_fd, 1)
+            os.dup2(old_err_fd, 2)
+            os.close(old_out_fd)
+            os.close(old_err_fd)
 
 # ---------------------------
 # ⚙️ Config
@@ -26,9 +49,11 @@ log = logging.getLogger(__name__)
 MODEL = "gemma3n"
 MAX_RETRIES = 3
 LANG_DIR = os.path.join(os.path.dirname(__file__), "lang")
-HISTORY_SIZE = 3
+HISTORY_SIZE = 10
 HISTORY_FILE = os.path.join(os.path.dirname(__file__), ".podcast_history.json")
 TITLES_PER_GENERATION = 5  # number of candidate titles generated, each with its own random topic seed
+MAX_TOPIC_RETRIES = 10
+now = datetime.now()
 
 # ---------------------------
 # 🌐 Language loading
@@ -49,7 +74,7 @@ def scan_languages() -> dict[str, str]:
             with open(path, "r", encoding="utf-8") as f:
                 data = json.load(f)
             # Require the minimum keys needed to run
-            required = {"topics", "angles", "twists", "target_style", "prompts", "fallback"}
+            required = {"topics", "target_style", "prompts", "fallback"}
             if not required.issubset(data.keys()):
                 missing = required - data.keys()
                 log.warning(f"Skipping {filename}: missing keys {missing}")
@@ -117,21 +142,53 @@ TRUNCATION_PATTERN = re.compile(
     re.IGNORECASE
 )
 
-def call_llm(prompt: str, temperature: float = 1.0, max_tokens: int = 1024) -> Optional[str]:
+def get_web_context(query: str, current_date: str = "") -> str:
+    context_parts = []
+    seen = set()
+    search_query = f"{query} {current_date}".strip()
+    try:
+        with suppress_all_output():
+            with DDGS() as ddgs:
+                results = list(ddgs.text(search_query, max_results=10))
+                for r in results:
+                    body = r.get('body', '').strip()
+                    if body and body not in seen:
+                        seen.add(body)
+                        context_parts.append(
+                            f"Titre: {r['title']}\nSource: {r.get('href', '')}\n{body}\n"
+                        )
+        return "\n".join(context_parts)
+    except Exception as e:
+        log.warning(f"Recherche web échouée : {e}")
+        return "Pas de données web récentes disponibles."
+
+def call_llm(prompt: str, system_prompt: Optional[str] = None, temperature: float = 1.0, max_tokens: int = 1024) -> Optional[str]:
     current_max_tokens = max_tokens
 
     for attempt in range(1, MAX_RETRIES + 1):
         try:
-            response = ollama.chat(
-                model=MODEL,
-                messages=[{"role": "user", "content": prompt}],
-                options={
-                    "temperature": temperature,
-                    "top_p": 0.95,
-                    "repeat_penalty": 1.2,
-                    "num_predict": current_max_tokens,
-                }
-            )
+            if system_prompt:
+                response = ollama.chat(
+                    model=MODEL,
+                    messages=[{"role": "system", "content": system_prompt},{"role": "user", "content": prompt}],
+                    options={
+                        "temperature": temperature,
+                        "top_p": 0.95,
+                        "repeat_penalty": 1.2,
+                        "num_predict": current_max_tokens,
+                    }
+                )
+            else:
+                response = ollama.chat(
+                    model=MODEL,
+                    messages=[{"role": "user", "content": prompt}],
+                    options={
+                        "temperature": temperature,
+                        "top_p": 0.95,
+                        "repeat_penalty": 1.2,
+                        "num_predict": current_max_tokens,
+                    }
+                )
             content = response["message"]["content"].strip()
             if not content:
                 raise ValueError("Empty response from model")
@@ -179,121 +236,61 @@ def extract_tag_list(text: str, tag: str) -> list[str]:
 # ---------------------------
 # 🧠 Topic generation
 # ---------------------------
-def _generate_one_title(L: dict, angle: str, twist: str) -> Optional[str]:
-    """Single LLM call with its own randomly drawn topic seed. Returns one cleaned title or None."""
-    topic = random.choice(L["topics"])
-    angle   = angle if angle is not None else random.choice(L["angles"])
-    twist   = twist if twist is not None else random.choice(L["twists"])
-    seed  = random.randint(0, 100000)
 
-    prompt = L["prompts"]["topic_generation"].format(
-        seed=seed, topic=topic, twist=twist, angle=angle
-    )
+def _pick_fresh_topic(L: dict, history: list[str]) -> str:
+    topics = L["topics"]
+    # Extraire les seeds déjà utilisés de l'historique
+    used_seeds = {h for h in history}
 
-    raw = call_llm(prompt, temperature=1.2)
-    if not raw:
-        return None
+    for _ in range(MAX_TOPIC_RETRIES):
+        candidate = random.choice(topics)
+        if candidate not in used_seeds:
+            return candidate
 
-    # Try structured tag first
-    titles = extract_tag_list(raw, "T")
-
-    # Fallback: parse lines
-    if not titles:
-        log.debug(f"Tag extraction failed, raw output:\n{raw[:500]}")
-        lines = [l.strip() for l in raw.split("\n") if l.strip()]
-        titles = []
-        for line in lines:
-            m = re.match(r'^\[(.+?)\[/T\]$', line, re.IGNORECASE)
-            if m:
-                titles.append(m.group(1).strip())
-                continue
-            m = re.match(r'^\[T\](.+?)\[/T\]$', line, re.IGNORECASE)
-            if m:
-                titles.append(m.group(1).strip())
-                continue
-            m = re.match(r'^\[([^\[\]/]{10,120})\]\s*$', line)
-            if m:
-                titles.append(m.group(1).strip())
-                continue
-            if 10 < len(line) < 120 and not line.startswith("["):
-                titles.append(clean_title(line))
-
-    cleaned = [clean_title(t).split("\n")[0][:120] for t in titles if t]
-    return cleaned[0] if cleaned else None
+    log.warning("Could not find a fresh topic seed, picking randomly.")
+    return random.choice(topics)
 
 
-def generate_topic(
-    L: dict,
-    angle: Optional[str] = None,
-    twist: Optional[str] = None,
-    history: Optional[list[str]] = None,
-) -> str:
+def generate_topic(L: dict, history: Optional[list[str]] = None) -> str:
     history = history or []
 
-    # Each call draws its own random topic from L["topics"]
-    titles = []
-    for i in range(TITLES_PER_GENERATION):
-        t = _generate_one_title(L, angle, twist)
-        if t:
-            titles.append(t)
-            log.debug(f"Candidate {i + 1}/{TITLES_PER_GENERATION}: {t}")
+    seed_topic = _pick_fresh_topic(L, history)
+    log.info(f"🎲 Topic seed: {seed_topic}")
 
-    if not titles:
-        return L["fallback"]["topic"]
-
-    fresh_titles = [t for t in titles if t not in history]
-
-    chosen = chose_topic(
-        fresh_titles if fresh_titles else titles,
-        L, angle, twist, history=history,
-    )
-
-    updated_history = (history + [chosen])[-HISTORY_SIZE:]
+    # Sauvegarder uniquement le seed
+    updated_history = (history + [f"{seed_topic}"])[-HISTORY_SIZE:]
     save_history(updated_history)
 
-    return chosen
+    seed = random.randint(0, 100000)
+    locale = L.get("locale", "en_US")
+    date = format_date(now, format='yyyy', locale=locale)
+    system_prompt = L["prompts"]["system_date"].format(date=date)
+    prompt = L["prompts"]["topic_generation"].format(seed=seed, topic=seed_topic)
 
-def chose_topic(
-    topics: list,
-    L: dict,
-    angle: str,
-    twist: str,
-    history: Optional[list[str]] = None,
-):
-    formatted = "\n".join(f"- {t}" for t in topics)
+    raw = call_llm(prompt, system_prompt, temperature=1.4)
+    if not raw:
+        return []
 
-    avoid_block = ""
-    if history:
-        avoid_lines = "\n".join(f"- {t}" for t in history)
-        avoid_block = L["prompts"]["avoid_block"].format(avoid=avoid_lines)
+    title = extract_tag(raw, "T")
 
-    prompt = L["prompts"]["topic_choice"].format(topics=formatted) + avoid_block
+    cleaned = clean_title(title)
+    return cleaned
 
-    chosen = call_llm(prompt, temperature=0.7)
-    if not chosen:
-        return random.choice(topics) if topics else L["fallback"]["topic"]
-
-    if "[REGENERATE]" in chosen:
-        log.info("Retrying new titles")
-        return generate_topic(L, angle, twist, history=history)
-
-    chosen = clean_title(chosen)
-    return chosen if chosen else random.choice(topics)
 
 # ---------------------------
 # 📋 Outline generation
 # ---------------------------
-def generate_outline(topic: str, L: dict) -> list[str]:
+def generate_outline(topic: str, L: dict, system_prompt: str) -> list[str]:
     prompt = L["prompts"]["outline_generation"].format(topic=topic)
 
-    raw = call_llm(prompt, temperature=1.0, max_tokens=512)
+    raw = call_llm(prompt, system_prompt, temperature=1.0, max_tokens=512)
     if not raw:
         log.warning("LLM returned nothing for outline, using default.")
         return L["fallback"]["outline"]
 
     sections = extract_tag_list(raw, "P")
     if not sections:
-        log.debug("Outline tag extraction failed (fallback active)")
+        log.warning("Outline tag extraction failed (fallback active)")
         lines = [l.strip() for l in raw.split("\n") if l.strip()]
         sections = []
         for line in lines:
@@ -318,7 +315,7 @@ def generate_outline(topic: str, L: dict) -> list[str]:
 # ---------------------------
 # ✍️ Section generation
 # ---------------------------
-def generate_section(topic: str, section: str, previous_sections: list[str], L: dict) -> str:
+def generate_section(topic: str, section: str, previous_sections: list[str], other_sections: list[str], L: dict, system_prompt: str) -> str:
     already_covered = ""
     if previous_sections:
         label = L["prompts"]["already_covered_label"]
@@ -328,17 +325,18 @@ def generate_section(topic: str, section: str, previous_sections: list[str], L: 
         topic=topic,
         section=section,
         already_covered=already_covered,
+        other_sections=", ".join(f"{s}" for s in other_sections),
         style=L["target_style"]
     )
 
-    raw = call_llm(prompt, temperature=1.0)
+    raw = call_llm(prompt, system_prompt, temperature=0.8)
     if not raw:
         return L["fallback"]["section_unavailable"].format(section=section)
 
     content = extract_tag(raw, "P")
     return content if content else clean_text(raw)
 
-def generate_intro(topic: str, outline: list[str], L: dict) -> str:
+def generate_intro(topic: str, outline: list[str], L: dict, system_prompt: str) -> str:
     outline_str = ", ".join(outline)
     prompt = L["prompts"]["intro_generation"].format(
         topic=topic,
@@ -346,7 +344,7 @@ def generate_intro(topic: str, outline: list[str], L: dict) -> str:
         style=L["target_style"]
     )
 
-    raw = call_llm(prompt, temperature=1.0)
+    raw = call_llm(prompt, system_prompt, temperature=0.8)
     if not raw:
         log.warning("LLM returned nothing for intro, using fallback.")
         return L["fallback"]["intro"].format(topic=topic)
@@ -354,7 +352,7 @@ def generate_intro(topic: str, outline: list[str], L: dict) -> str:
     content = extract_tag(raw, "I")
     return content if content else clean_text(raw)
 
-def generate_conclusion(topic: str, outline: list[str], L: dict) -> str:
+def generate_conclusion(topic: str, outline: list[str], L: dict, system_prompt: str) -> str:
     key_points = ", ".join(outline)
     prompt = L["prompts"]["conclusion_generation"].format(
         topic=topic,
@@ -362,7 +360,7 @@ def generate_conclusion(topic: str, outline: list[str], L: dict) -> str:
         style=L["target_style"]
     )
 
-    raw = call_llm(prompt, temperature=1.0)
+    raw = call_llm(prompt, system_prompt, temperature=0.8)
     if not raw:
         log.warning("LLM returned nothing for conclusion, using fallback.")
         return L["fallback"]["conclusion"].format(topic=topic)
@@ -376,26 +374,35 @@ def generate_conclusion(topic: str, outline: list[str], L: dict) -> str:
 def generate_full_content(topic: str, L: dict) -> str:
     msgs = L["log_messages"]
 
+    locale = L.get("locale", "en_US")
+    date = format_date(now, format='MMMM yyyy', locale=locale).capitalize()
+    web_data = get_web_context(topic, current_date=date)
+    system_date=L["prompts"]["system_date"].format(date=date)
+    system_data=L["prompts"]["system_data"].format(context=web_data)
+    system_prompt = system_date + system_data
+
     log.info(msgs["generating_outline"])
-    outline = generate_outline(topic, L)
+    outline = generate_outline(topic, L, system_prompt)
     log.info(f"Outline: {outline}")
 
     sections = []
     processed_sections = []
 
     log.info(msgs["generating_intro"])
-    intro = generate_intro(topic, outline, L)
+    intro = generate_intro(topic, outline, L, system_prompt)
     sections.append(intro)
-    processed_sections.append(intro)
 
     for i, section in enumerate(outline):
+        other_sections = outline.copy()
+        other_sections.remove(section)
         log.info(msgs["generating_section"].format(i=i + 1, total=len(outline), section=section))
-        text = generate_section(topic, section, processed_sections, L)
+        text = generate_section(topic, section, processed_sections, other_sections, L, system_prompt)
         sections.append(text)
-        processed_sections.append(text)
+        points = resume_section(text, L)
+        processed_sections.append(points)
 
     log.info(msgs["generating_conclusion"])
-    conclusion = generate_conclusion(topic, outline, L)
+    conclusion = generate_conclusion(topic, outline, L, system_prompt)
     sections.append(conclusion)
 
     return "\n\n".join(sections)
@@ -404,14 +411,29 @@ def generate_full_content(topic: str, L: dict) -> str:
 # 🧹 Cleaning
 # ---------------------------
 def clean_text(text: str) -> str:
+    # 1. Suppression des enrichissements Markdown (gras, italique, titres)
     text = re.sub(r'\*{1,2}(.*?)\*{1,2}', r'\1', text)
     text = re.sub(r'\_{1,2}(.*?)\_{1,2}', r'\1', text)
     text = re.sub(r'^#{1,6}\s*', '', text, flags=re.MULTILINE)
-    text = re.sub(r'\033\[[0-9;]*m', '', text)
-    text = re.sub(r'\(.*?(musique|bruit|son|ambiance|silence|jingle|music|noise|sound|ambient).*?\)', '', text, flags=re.IGNORECASE)
-    text = re.sub(r'\[.*?(musique|bruit|son|ambiance|music|noise|sound|ambient).*?\]', '', text, flags=re.IGNORECASE)
-    text = re.sub(r'\[/?[A-Z]+\]', '', text)
+    
+    # 2. Nettoyage des balises de structure et métadonnées LLM
+    text = re.sub(r'\[/?[A-Z]+\]', '', text) # Supprime [P], [/P], [I], etc.
+    text = re.sub(r'\033\[[0-9;]*m', '', text) # Codes couleur ANSI
+    
+    # 3. Suppression des indications sonores (musique, bruits)
+    pattern_noise = r'[\(\[][^\]\)]*?(musique|bruit|son|ambiance|jingle|music|noise|sound|ambient)[^\]\)]*?[\)\]]'
+    text = re.sub(pattern_noise, '', text, flags=re.IGNORECASE)
+    
+    # 4. GESTION DES ESPACES ET SAUTS DE LIGNE (Optimisée)
+    # Remplace les tabulations et espaces multiples par un seul espace
+    text = re.sub(r'[ \t]+', ' ', text)
+    
+    # Supprime les espaces en début et fin de chaque ligne
+    text = "\n".join(line.strip() for line in text.splitlines())
+    
+    # Remplace 3 sauts de ligne ou plus par exactement deux (un seul saut vide)
     text = re.sub(r'\n{3,}', '\n\n', text)
+    
     return text.strip()
 
 def clean_title(title: str) -> str:
@@ -422,6 +444,11 @@ def clean_title(title: str) -> str:
     title = title.replace('"', '').replace("'", "'")
     title = re.sub(r'\s+', ' ', title)
     return title.strip()
+
+def resume_section(text: str, L: dict) -> str:
+    prompt = L["prompts"]["resume_section"].format(text=text)
+    content = call_llm(prompt, temperature=0.2)
+    return clean_text(content)
 
 # ---------------------------
 # 🔊 Generate TTS
@@ -453,8 +480,6 @@ async def generate_audio_and_subs(text, voice, audio_path, srt_path):
 def create_podcast(
     topic: Optional[str] = None,
     lang: Optional[str] = None,
-    angle: Optional[str] = None,
-    twist: Optional[str] = None,
 ):
     available = scan_languages()
 
@@ -474,22 +499,12 @@ def create_podcast(
     msgs = L["log_messages"]
     log.info(msgs["language_selected"])
 
-    if angle:
-        log.info(f"🎯 Angle override : {angle}")
-    if twist:
-        log.info(f"🌀 Twist override  : {twist}")
-
     history = load_history()
     if history:
         log.debug(f"📋 Recent topics to avoid: {history}")
 
     if not topic:
-        topic = generate_topic(L, angle=angle, twist=twist, history=history)
-    else:
-        if angle or twist:
-            extras = " — ".join(filter(None, [angle, twist]))
-            topic = f"{topic} ({extras})"
-            log.info(f"📌 Enriched topic : {topic}")
+        topic = generate_topic(L, history=history)
 
     log.info(f"\n🎯 Topic: {topic}\n")
     log.info(msgs["generating_content"])
@@ -528,15 +543,11 @@ if __name__ == "__main__":
     args = sys.argv[1:]
 
     lang_arg,  args = _pop_arg(args, "--lang")
-    topic_arg, args = _pop_arg(args, "--topic")
-    angle_arg, args = _pop_arg(args, "--angle")
-    twist_arg, args = _pop_arg(args, "--twist")
 
     if lang_arg:
         lang_arg = lang_arg.lower()
 
     if args:
         leftover = " ".join(args)
-        topic_arg = f"{topic_arg} {leftover}".strip() if topic_arg else leftover
 
-    create_podcast(topic=topic_arg, lang=lang_arg, angle=angle_arg, twist=twist_arg)
+    create_podcast(topic=(leftover if args else None), lang=lang_arg)
