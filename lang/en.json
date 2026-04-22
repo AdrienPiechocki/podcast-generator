@@ -104,7 +104,8 @@
     "Etymology and Language Evolution",
     "Genealogy and Palaeography",
     "Water Potabilization",
-    "Celestial Navigation"
+    "Celestial Navigation",
+    "Literature"
   ],
   "target_style": "Expected style:\n- Neutral, measured journalistic tone, neither too casual nor too academic\n- Short sentences, oral rhythm but without exclamations or prompts like \"Listen up!\"\n- Avoid excessive use of \"you guys\"; prefer \"we\" or impersonal forms\n- Always end on a complete sentence, never mid-thought\n- Prioritize facts, technical mechanisms, and industry examples over general opinions",
   "voice_model": "en-US-AvaNeural",

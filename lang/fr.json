@@ -104,7 +104,8 @@
     "Étymologie et Évolution des Langues",
     "Généalogie et Paléographie",
     "Potabilisation de l'Eau",
-    "Navigation Astronomique"
+    "Navigation Astronomique",
+    "Littérature"
   ],
   "target_style": "Style attendu :\n- Ton journalistique neutre et posé, ni trop familier ni trop académique\n- Phrases courtes, rythme oral mais sans exclamations ou interpellations du type \"Écoutez bien !\"\n- Pas de \"on\" de connivence excessive ; préférer \"nous\" ou la forme impersonnelle\n- Terminer sur une phrase complète, jamais en milieu de pensée\n- Privilégier les faits, les mécanismes techniques et les exemples de l'industrie plutôt que les avis généraux",
   "voice_model": "fr-FR-DeniseNeural",
