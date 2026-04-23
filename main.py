@@ -51,7 +51,7 @@ MAX_RETRIES = 3
 LANG_DIR = os.path.join(os.path.dirname(__file__), "lang")
 HISTORY_SIZE = 10
 HISTORY_FILE = os.path.join(os.path.dirname(__file__), ".podcast_history.json")
-TITLES_PER_GENERATION = 5  # number of candidate titles generated, each with its own random topic seed
+TITLES_PER_GENERATION = 5
 MAX_TOPIC_RETRIES = 10
 now = datetime.now()
 
@@ -257,24 +257,51 @@ def generate_topic(L: dict, history: Optional[list[str]] = None) -> str:
     seed_topic = _pick_fresh_topic(L, history)
     log.info(f"🎲 Topic seed: {seed_topic}")
 
-    # Sauvegarder uniquement le seed
     updated_history = (history + [f"{seed_topic}"])[-HISTORY_SIZE:]
     save_history(updated_history)
 
-    seed = random.randint(0, 100000)
     locale = L.get("locale", "en_US")
     date = format_date(now, format='yyyy', locale=locale)
     system_prompt = L["prompts"]["system_date"].format(date=date)
-    prompt = L["prompts"]["topic_generation"].format(seed=seed, topic=seed_topic)
 
-    raw = call_llm(prompt, system_prompt, temperature=1.2)
-    if not raw:
-        return []
+    # Generate one title per angle, then pick the best
+    angles = L.get("angles", [])
+    if not angles:
+        angles = ["général"]
+    selected_angles = random.sample(angles, min(TITLES_PER_GENERATION, len(angles)))
 
-    title = extract_tag(raw, "T")
+    titles = []
+    for angle in selected_angles:
+        seed = random.randint(0, 100000)
+        prompt = L["prompts"]["topic_generation"].format(
+            seed=seed, topic=seed_topic, angle=angle
+        )
+        raw = call_llm(prompt, system_prompt, temperature=0.9)
+        if not raw:
+            continue
+        extracted = extract_tag_list(raw, "T")
+        for t in extracted:
+            cleaned = clean_title(t)
+            if cleaned:
+                titles.append(cleaned)
+                break  # one per angle
 
-    cleaned = clean_title(title)
-    return cleaned
+    if not titles:
+        return L["fallback"]["topic"]
+
+    if len(titles) == 1:
+        return titles[0]
+
+    # Let the LLM pick the most original one
+    topics_str = "\n".join(f"[T]{t}[/T]" for t in titles)
+    choice_prompt = L["prompts"]["topic_choice"].format(topics=topics_str)
+    chosen = call_llm(choice_prompt, temperature=0.2)
+
+    if not chosen or "[REGENERATE]" in chosen:
+        return random.choice(titles)
+
+    cleaned = clean_title(chosen.strip())
+    return cleaned if cleaned else random.choice(titles)
 
 
 # ---------------------------
@@ -318,7 +345,7 @@ def generate_outline(topic: str, L: dict, system_prompt: str) -> list[str]:
 # ---------------------------
 # 🔍 Keyword filtering
 # ---------------------------
-MIN_KW_LEN = 6
+MIN_KW_LEN = 4
 GENERIC_WORDS = {
     # French
     "avancées", "applications", "efficacité", "optimisation", "durabilité",

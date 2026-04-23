@@ -127,14 +127,14 @@
   "prompts": {
     "system_date": "We are in {date}. ",
     "system_data": "Here is some context for the prompts: \n{context}",
-    "topic_generation": "Seed: {seed}\n\nGenerate 3 titles for a podcast episode in English.\nTopic: {topic}\n\nABSOLUTE RULES:\n- Each title must be FACTUAL and grounded in the given topic\n- Focus on a specific point but no off-topic content\n- One title per line, only between tags\n- No numbering, no markdown, no parentheses\n\nMANDATORY FORMAT (exactly like this):\n[T]Title here[/T]\n[T]Title here[/T]\n[T]Title here[/T]\n[T]Title here[/T]\n[T]Title here[/T]",
-    "topic_choice": "You must choose the single most relevant and realistic title for a podcast in English.\nTitles:\n{topics}\n\nRules:\n- Reply with ONLY the chosen title.\n- If none are suitable, reply with exactly: [REGENERATE]",
+    "topic_generation": "Seed: {seed}\nImposed angle: {angle}\n\nGenerate ONE podcast episode title in English about: {topic}\n\nABSOLUTE RULES:\n- The title must address the topic ONLY from the imposed angle\n- Factual, precise, grounded in reality\n\nMANDATORY FORMAT:\n[T]Title here[/T]",
+    "topic_choice": "Choose the most original, precise and realistic title for an English podcast.\nAvoid titles that are too generic or too close to 'The evolution of X in 2026'.\nTitles:\n{topics}\n\nRules:\n- Reply with ONLY the chosen title.\n- If none are suitable, reply with exactly: [REGENERATE]",
     "outline_generation": "Create a plan for a podcast episode in English.\nPrecise topic: {topic}\n\nABSOLUTE RULES:\n- 4 to 6 DISTINCT sections, with no thematic overlap\n- Each section must adopt a DIFFERENT angle: a cause, a consequence, an actor, a tension, a concrete case, a time period, a comparison...\n- FORBIDDEN to have two sections on the same angle (e.g. two economic sections, two technical sections)\n- Each title must contain a verb or express a tension\n- 4 to 8 words per title\n- No markdown, no explanations, only the titles\n\nMANDATORY FORMAT:\n[P]Title[/P]\n[P]Title[/P]",
     "section_generation": "You are a specialist writer.\nOverall podcast topic: {topic}\nSection to write: {section}\n\n{already_covered}\n\nOther podcast sections (DO NOT cover these topics): {other_sections}\n\n{style}\n\nABSOLUTE RULES:\n- 150 to 250 words MAXIMUM.\n- ZERO generalities: get straight to technical details or concrete examples.\n- This section must bring NEW information not yet covered.\n- FORBIDDEN to summarize or rephrase what came before.\n- FORBIDDEN to open with a generic introductory sentence about the overall topic.\nFormat:\n[P]\nText here\n[/P]",
     "intro_generation": "You are a radio journalist.\nWrite the introduction for a podcast about: {topic}\nThe podcast will cover: {outline_str}\n{style}\n\nRules:\n- 50 to 100 words\n- Strong hook from the very first sentence\n- Don't give a name to the podcast\n- Clear outline of the plan without detailing it\n- No staging (music, etc.)\n- End with a complete sentence before [/I]\n\nFormat:\n[I]\nText\n[/I]",
     "conclusion_generation": "You are a radio journalist.\nWrite the conclusion for a podcast about: {topic}\nHere is a summary of points already covered (DO NOT repeat or rephrase):\n{key_points}\n{style}\n\nRules:\n- 50 to 100 words\n- Do NOT summarize what was just said: open onto a perspective, an open question, or a future challenge\n- No repetition of examples or names already cited\n- End with a complete sentence before [/C]\n\nFormat:\n[C]\nText\n[/C]",
     "resume_section_ideas": "Extract the main ideas covered in this text in a few words.\nBe brief, one line per idea, no explanation:\n\n{text}",
-    "resume_section_keywords": "Read this text and extract ONLY the 3 to 5 most concrete and distinctive examples:\n- Proper nouns cited (people, institutions, products, organizations)\n- Titles of named works, technologies, or precise standards\n- Unique concrete examples (e.g. 'kimchi', 'NIH', 'Lactobacillus reuteri')\nABSOLUTE RULE: maximum 5 elements. No abstract concepts. No generic terms.\nFormat: one item per line, no sentence:\n\n{text}",
+    "resume_section_keywords": "Read this text and extract ONLY the most concrete and distinctive examples:\n- Proper nouns cited (people, institutions, products, organizations)\n- Titles of named works, technologies, or precise standards\n- Unique concrete examples (e.g. 'kimchi', 'NIH', 'Lactobacillus reuteri')\nABSOLUTE RULE: maximum 10 elements. No abstract concepts. No generic terms.\nFormat: one item per line, no sentence:\n\n{text}",
     "already_covered_label": "CONTENT ALREADY COVERED — DO NOT reuse, even rephrased:\n\nIdeas covered:\n{ideas}\n\nFORBIDDEN terms, works, concepts (do not cite or paraphrase):\n{keywords}",
     "section_verify": "You are a strict reviewer.\nHere is a list of SPECIFIC forbidden elements (proper nouns, precise examples, distinctive concepts):\n{forbidden}\n\nHere is a text to verify:\n{text}\n\nDoes the text explicitly mention any of these forbidden elements?\nIMPORTANT: ignore coincidental matches on generic or domain-unavoidable words.\nOnly flag a violation if a forbidden element is clearly reused.\nReply ONLY with:\n[OK] if no clear violation\n[FAIL]term1, term2[/FAIL] if specific forbidden elements are present",
     "section_regenerate": "You are a specialist writer.\nOverall podcast topic: {topic}\nSection to write: {section}\n\n{already_covered}\n\nOther podcast sections (DO NOT cover these topics): {other_sections}\n\n{style}\n\nWARNING: A previous version of this text was rejected because it used these forbidden elements: {violations}\nYou must find OTHER examples, OTHER terms, OTHER angles.\n\nABSOLUTE RULES:\n- 150 to 250 words MAXIMUM.\n- ZERO generalities: get straight to technical details or concrete examples.\n- This section must bring NEW information not yet covered.\n- FORBIDDEN to summarize or rephrase what came before.\n- FORBIDDEN to open with a generic introductory sentence about the overall topic.\nFormat:\n[P]\nText here\n[/P]"
@@ -153,5 +153,14 @@
     "podcast_done": "✅ Podcast generated!",
     "log_verify_fail": "⚠️  Violation detected in section '{section}': {violations} — regenerating...",
     "log_verify_ok": "✅ Section '{section}' validated."
-  }
+  },
+  "angles": [
+    "historical or origins",
+    "technical or scientific",
+    "societal or human",
+    "economic or industrial",
+    "controversial or debated",
+    "practical or concrete (use case, real example)",
+    "prospective or future-oriented"
+  ]
 }
