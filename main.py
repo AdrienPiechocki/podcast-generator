@@ -315,8 +315,63 @@ def generate_outline(topic: str, L: dict, system_prompt: str) -> list[str]:
 # ---------------------------
 # ✍️ Section generation
 # ---------------------------
+# ---------------------------
+# 🔍 Keyword filtering
+# ---------------------------
+MIN_KW_LEN = 6
+GENERIC_WORDS = {
+    # French
+    "avancées", "applications", "efficacité", "optimisation", "durabilité",
+    "prédiction", "résistance", "température", "pression", "déformation",
+    "propriétés", "composition", "matériaux", "transformation", "scénarios",
+    "géométries", "résultats", "processus", "méthodes", "systèmes",
+    "modèles", "analyse", "données", "contexte", "approche", "impact",
+    # English
+    "advances", "applications", "efficiency", "optimization", "durability",
+    "prediction", "resistance", "temperature", "pressure", "deformation",
+    "properties", "composition", "materials", "transformation", "scenarios",
+    "geometries", "results", "processes", "methods", "systems",
+    "models", "analysis", "context", "approach", "impact", "data",
+}
+
+def filter_keywords(raw_keywords: str) -> str:
+    """Remove generic/short keywords from the blocklist before sending to verifier."""
+    lines = [l.strip().lstrip("- ") for l in raw_keywords.splitlines() if l.strip()]
+    filtered = [
+        l for l in lines
+        if len(l) >= MIN_KW_LEN and l.lower() not in GENERIC_WORDS
+    ]
+    return "\n".join(f"- {l}" for l in filtered)
+
+
+def verify_section(text: str, forbidden_keywords: str, L: dict) -> Optional[list[str]]:
+    """Check if text uses any forbidden keywords. Returns list of violations or None if OK."""
+    filtered = filter_keywords(forbidden_keywords)
+    if not filtered.strip():
+        return None
+
+    prompt = L["prompts"]["section_verify"].format(
+        forbidden=filtered,
+        text=text
+    )
+    raw = call_llm(prompt, temperature=0.0, max_tokens=128)
+    if not raw:
+        return None
+
+    if "[OK]" in raw.upper():
+        return None
+
+    match = re.search(r'\[FAIL\](.*?)\[/FAIL\]', raw, re.DOTALL | re.IGNORECASE)
+    if match:
+        violations = [v.strip() for v in match.group(1).split(",") if v.strip()]
+        return violations if violations else None
+
+    return None
+
+
 def generate_section(topic: str, section: str, previous_sections: list[dict], other_sections: list[str], L: dict, system_prompt: str) -> str:
     already_covered = ""
+    all_keywords = ""
     if previous_sections:
         all_ideas = "\n".join(f"- {s['ideas']}" for s in previous_sections if s.get('ideas'))
         all_keywords = "\n".join(f"- {kw}" for s in previous_sections for kw in s.get('keywords', '').splitlines() if kw.strip())
@@ -325,20 +380,44 @@ def generate_section(topic: str, section: str, previous_sections: list[dict], ot
             keywords=all_keywords
         )
 
-    prompt = L["prompts"]["section_generation"].format(
+    base_prompt_kwargs = dict(
         topic=topic,
         section=section,
         already_covered=already_covered,
-        other_sections=", ".join(f"{s}" for s in other_sections),
+        other_sections=", ".join(other_sections),
         style=L["target_style"]
     )
 
+    prompt = L["prompts"]["section_generation"].format(**base_prompt_kwargs)
     raw = call_llm(prompt, system_prompt, temperature=0.8)
     if not raw:
         return L["fallback"]["section_unavailable"].format(section=section)
 
-    content = extract_tag(raw, "P")
-    return content if content else clean_text(raw)
+    content = extract_tag(raw, "P") or clean_text(raw)
+
+    # Post-generation verification loop
+    for attempt in range(1, MAX_RETRIES + 1):
+        violations = verify_section(content, all_keywords, L)
+        if violations is None:
+            log.info(L["log_messages"]["log_verify_ok"].format(section=section))
+            break
+
+        violations_str = ", ".join(violations)
+        log.warning(L["log_messages"]["log_verify_fail"].format(
+            section=section, violations=violations_str
+        ))
+
+        regen_prompt = L["prompts"]["section_regenerate"].format(
+            **base_prompt_kwargs,
+            violations=violations_str
+        )
+        raw = call_llm(regen_prompt, system_prompt, temperature=1.0)
+        if not raw:
+            break
+        content = extract_tag(raw, "P") or clean_text(raw)
+
+    return content
+
 
 def generate_intro(topic: str, outline: list[str], L: dict, system_prompt: str) -> str:
     outline_str = ", ".join(outline)

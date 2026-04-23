@@ -136,7 +136,9 @@
     "intro_generation": "Tu es un journaliste radio.\nRédige l'introduction d'un podcast sur : {topic}\nLe podcast abordera : {outline_str}\n{style}\n\nRègles :\n- 50 à 100 mots\n- Accroche forte dès la première phrase\n - Ne donne pas de nom au podcast\n- Annonce claire du plan sans le détailler\n- Pas de mise en scène (musique, etc.)\n- Terminer par une phrase complète avant [/I]\n\nFormat :\n[I]\nTexte\n[/I]",
     "conclusion_generation": "Tu es un journaliste radio.\nRédige la conclusion d'un podcast sur : {topic}\nVoici un résumé des points déjà couverts (NE PAS répéter, NE PAS reformuler) :\n{key_points}\n{style}\n\nRègles :\n- 50 à 100 mots\n- Ne résume PAS ce qui vient d'être dit : ouvre sur une perspective, une question ouverte ou un enjeu futur\n- Aucune répétition d'exemples ou de noms déjà cités\n- Terminer par une phrase complète avant [/C]\n\nFormat :\n[C]\nTexte\n[/C]",
     "resume_section_ideas": "Extrais en quelques mots les idées principales abordées dans ce texte. Sois bref, une ligne par idée, sans explication :\n\n{text}",
-    "resume_section_keywords": "Liste UNIQUEMENT les éléments concrets mentionnés dans ce texte : noms d'œuvres, titres, auteurs, concepts techniques, termes spécifiques. Format : un élément par ligne, sans phrase, sans explication :\n\n{text}"
+    "resume_section_keywords": "Lis ce texte et extrais UNIQUEMENT les 3 à 5 exemples les plus concrets et distinctifs :\n- Noms propres cités (personnes, institutions, produits, organisations)\n- Titres d'œuvres, de technologies nommées, de standards précis\n- Exemples concrets uniques (ex : 'kimchi', 'NIH', 'Lactobacillus reuteri')\nRÈGLE ABSOLUE : maximum 5 éléments. Pas de concepts abstraits. Pas de termes génériques.\nFormat : un élément par ligne, sans phrase :\n\n{text}",
+    "section_verify": "Tu es un relecteur strict.\nVoici une liste d'éléments SPÉCIFIQUES interdits (noms propres, exemples précis, concepts distinctifs) :\n{forbidden}\n\nVoici un texte à vérifier :\n{text}\n\nLe texte mentionne-t-il explicitement l'un de ces éléments interdits ?\nIMPORTANT : ignore les coïncidences sur des mots génériques ou inévitables dans le domaine.\nNe signale une violation QUE si un élément interdit est clairement réutilisé.\nRéponds UNIQUEMENT par :\n[OK] si aucune violation claire\n[FAIL]terme1, terme2[/FAIL] si des éléments interdits spécifiques sont présents",
+    "section_regenerate": "Tu es un rédacteur spécialisé.\nSujet global : {topic}\nPartie à rédiger : {section}\n\n{already_covered}\n\nAutres parties du podcast (NE PAS aborder ces sujets) : {other_sections}\n\n{style}\n\nATTENTION : Une version précédente de ce texte a été rejetée car elle utilisait ces éléments interdits : {violations}\nTu dois impérativement trouver d'AUTRES exemples, d'AUTRES termes, d'AUTRES angles.\n\nRègles ABSOLUES :\n- 150 à 250 mots MAXIMUM.\n- ZÉRO généralités : entre directement dans les détails techniques ou les exemples concrets.\n- Cette partie doit apporter une information NOUVELLE qui n'a pas encore été dite.\n- INTERDIT de résumer ou reformuler ce qui précède.\n- INTERDIT de commencer par une phrase d'introduction générale sur le sujet global.\nFormat :\n[P]\nTexte ici\n[/P]"
   },
   "log_messages": {
     "language_selected": "Langue sélectionnée : FR",
@@ -149,6 +151,8 @@
     "generating_content": "🧠 Génération du contenu...",
     "generating_audio": "🎙️ Génération de l'audio...",
     "text_saved": "📄 Texte sauvegardé : {path}",
-    "podcast_done": "✅ Podcast généré !"
+    "podcast_done": "✅ Podcast généré !",
+    "log_verify_fail": "⚠️  Violation détectée dans la section '{section}' : {violations} — régénération...",
+    "log_verify_ok": "✅ Section '{section}' validée."
   }
 }
