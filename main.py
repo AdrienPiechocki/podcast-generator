@@ -53,6 +53,7 @@ HISTORY_SIZE = 10
 HISTORY_FILE = os.path.join(os.path.dirname(__file__), ".podcast_history.json")
 TITLES_PER_GENERATION = 5
 MAX_TOPIC_RETRIES = 10
+MAX_VERIFY_RETRIES = 5
 now = datetime.now()
 
 # ---------------------------
@@ -117,19 +118,28 @@ def pick_language(available: dict[str, str]) -> str:
 # ---------------------------
 # 📋 History persistence
 # ---------------------------
-def load_history() -> list[str]:
+def load_history() -> dict:
     """Load the sliding window of recently generated topics from disk."""
     try:
         with open(HISTORY_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
-        return data if isinstance(data, list) else []
+        # Migration : ancien format liste → nouveau format dict
+        if isinstance(data, list):
+            return {"recent_topics": data, "recent_titles": {}}
+        if isinstance(data, dict):
+            data.setdefault("recent_topics", [])
+            data.setdefault("recent_titles", {})
+            return data
     except (FileNotFoundError, json.JSONDecodeError):
-        return []
+        pass
+    return {"recent_topics": [], "recent_titles": {}}
 
-def save_history(history: list[str]) -> None:
+def save_history(history: dict) -> None:
     """Persist the last HISTORY_SIZE topics to disk."""
+    recent = history["recent_topics"][-HISTORY_SIZE:]
+    titles = {k: v for k, v in history["recent_titles"].items() if k in recent}
     with open(HISTORY_FILE, "w", encoding="utf-8") as f:
-        json.dump(history[-HISTORY_SIZE:], f, ensure_ascii=False, indent=2)
+        json.dump({"recent_topics": recent, "recent_titles": titles}, f, ensure_ascii=False, indent=2)
 
 # ---------------------------
 # 🔧 LLM utilities
@@ -142,41 +152,80 @@ TRUNCATION_PATTERN = re.compile(
     re.IGNORECASE
 )
 
+MAX_CONTEXT_CHARS = 3000  # à ajuster selon ton modèle
+NOISE_DOMAINS = {"pinterest", "reddit", "quora", "forum", "amazon", "ebay"}
+
 def get_web_context(query: str, current_date: str = "") -> str:
     context_parts = []
-    seen = set()
-    search_query = f"{query} {current_date}".strip()
+    seen_bodies = set()
+    total_chars = 0
+
+    # Requête plus ciblée : on évite de coller la date brute
+    search_query = query if not current_date else f"{query} {current_date.split()[-1]}"
+
     try:
         with suppress_all_output():
             with DDGS() as ddgs:
-                results = list(ddgs.text(search_query, max_results=10))
-                for r in results:
-                    body = r.get('body', '').strip()
-                    if body and body not in seen:
-                        seen.add(body)
-                        context_parts.append(
-                            f"Titre: {r['title']}\nSource: {r.get('href', '')}\n{body}\n"
-                        )
-        return "\n".join(context_parts)
+                results = list(ddgs.text(search_query, max_results=15))
+
+        for r in results:
+            href = r.get('href', '')
+            # Filtrer les domaines bruités
+            if any(noise in href for noise in NOISE_DOMAINS):
+                continue
+
+            body = r.get('body', '').strip()
+            if not body or len(body) < 80:  # ignorer les snippets trop courts
+                continue
+
+            # Déduplication floue : ignorer si les 60 premiers chars sont identiques
+            fingerprint = body[:60].lower()
+            if fingerprint in seen_bodies:
+                continue
+            seen_bodies.add(fingerprint)
+
+            chunk = f"Titre: {r['title']}\nSource: {href}\n{body}\n"
+
+            # Stopper quand on atteint la limite
+            if total_chars + len(chunk) > MAX_CONTEXT_CHARS:
+                break
+
+            context_parts.append(chunk)
+            total_chars += len(chunk)
+
+        return "\n".join(context_parts) if context_parts else "Pas de données web récentes disponibles."
+
     except Exception as e:
         log.warning(f"Recherche web échouée : {e}")
         return "Pas de données web récentes disponibles."
 
-def call_llm(prompt: str, system_prompt: Optional[str] = None, temperature: float = 1.0, max_tokens: int = 1024) -> Optional[str]:
+DIVERSITY_PROFILES = [
+    {"temperature": 0.7, "top_k": 20},   # précis, peu de variance
+    {"temperature": 0.9, "top_k": 50},   # équilibré
+    {"temperature": 1.1, "top_k": 80},   # créatif
+    {"temperature": 1.2, "top_k": 0},    # très libre
+    {"temperature": 1.3, "top_k": 0},    # maximal
+]
+
+def call_llm(prompt: str, system_prompt: Optional[str] = None, temperature: float = 1.0, max_tokens: int = 1024, extra_options=None) -> Optional[str]:
     current_max_tokens = max_tokens
 
+    options = {
+        "temperature": temperature,
+        "top_p": 0.95,
+        "repeat_penalty": 1.2,
+        "num_predict": current_max_tokens,
+    }
+    if extra_options:
+        options.update(extra_options)
+    
     for attempt in range(1, MAX_RETRIES + 1):
         try:
             if system_prompt:
                 response = ollama.chat(
                     model=MODEL,
                     messages=[{"role": "system", "content": system_prompt},{"role": "user", "content": prompt}],
-                    options={
-                        "temperature": temperature,
-                        "top_p": 0.95,
-                        "repeat_penalty": 1.2,
-                        "num_predict": current_max_tokens,
-                    }
+                    options=options
                 )
             else:
                 response = ollama.chat(
@@ -237,10 +286,9 @@ def extract_tag_list(text: str, tag: str) -> list[str]:
 # 🧠 Topic generation
 # ---------------------------
 
-def _pick_fresh_topic(L: dict, history: list[str]) -> str:
+def _pick_fresh_topic(L: dict, history: dict) -> str:
     topics = L["topics"]
-    # Extraire les seeds déjà utilisés de l'historique
-    used_seeds = {h for h in history}
+    used_seeds = set(history["recent_topics"])
 
     for _ in range(MAX_TOPIC_RETRIES):
         candidate = random.choice(topics)
@@ -252,13 +300,10 @@ def _pick_fresh_topic(L: dict, history: list[str]) -> str:
 
 
 def generate_topic(L: dict, history: Optional[list[str]] = None) -> str:
-    history = history or []
+    history = history or {"recent_topics": [], "recent_titles": {}}
 
     seed_topic = _pick_fresh_topic(L, history)
     log.info(f"🎲 Topic seed: {seed_topic}")
-
-    updated_history = (history + [f"{seed_topic}"])[-HISTORY_SIZE:]
-    save_history(updated_history)
 
     locale = L.get("locale", "en_US")
     date = format_date(now, format='yyyy', locale=locale)
@@ -271,12 +316,13 @@ def generate_topic(L: dict, history: Optional[list[str]] = None) -> str:
     selected_angles = random.sample(angles, min(TITLES_PER_GENERATION, len(angles)))
 
     titles = []
-    for angle in selected_angles:
+    for i, angle in enumerate(selected_angles):
+        profile = DIVERSITY_PROFILES[-2]
         seed = random.randint(0, 100000)
         prompt = L["prompts"]["topic_generation"].format(
             seed=seed, topic=seed_topic, angle=angle
         )
-        raw = call_llm(prompt, system_prompt, temperature=0.9)
+        raw = call_llm(prompt, system_prompt, extra_options=profile)
         if not raw:
             continue
         extracted = extract_tag_list(raw, "T")
@@ -294,14 +340,23 @@ def generate_topic(L: dict, history: Optional[list[str]] = None) -> str:
 
     # Let the LLM pick the most original one
     topics_str = "\n".join(f"[T]{t}[/T]" for t in titles)
-    choice_prompt = L["prompts"]["topic_choice"].format(topics=topics_str)
+    avoid = ""
+    if seed_topic in history["recent_titles"].keys():
+        avoid = L["prompts"]["avoid_topic"].format(avoid=history["recent_titles"][seed_topic])
+    choice_prompt = L["prompts"]["topic_choice"].format(topics=topics_str, avoid=avoid)
     chosen = call_llm(choice_prompt, temperature=0.2)
-
+    
     if not chosen or "[REGENERATE]" in chosen:
         return random.choice(titles)
 
     cleaned = clean_title(chosen.strip())
-    return cleaned if cleaned else random.choice(titles)
+    chosen_title = cleaned if cleaned else random.choice(titles)
+
+    updated_recent = (history["recent_topics"] + [seed_topic])[-HISTORY_SIZE:]
+    updated_titles = {**history["recent_titles"], seed_topic: chosen_title}
+    save_history({"recent_topics": updated_recent, "recent_titles": updated_titles})
+
+    return chosen_title
 
 
 # ---------------------------
@@ -310,7 +365,7 @@ def generate_topic(L: dict, history: Optional[list[str]] = None) -> str:
 def generate_outline(topic: str, L: dict, system_prompt: str) -> list[str]:
     prompt = L["prompts"]["outline_generation"].format(topic=topic)
 
-    raw = call_llm(prompt, system_prompt, temperature=1.0, max_tokens=512)
+    raw = call_llm(prompt, system_prompt, temperature=1.0)
     if not raw:
         log.warning("LLM returned nothing for outline, using default.")
         return L["fallback"]["outline"]
@@ -423,7 +478,7 @@ def generate_section(topic: str, section: str, previous_sections: list[dict], ot
     content = extract_tag(raw, "P") or clean_text(raw)
 
     # Post-generation verification loop
-    for attempt in range(1, MAX_RETRIES + 1):
+    for attempt in range(1, MAX_VERIFY_RETRIES + 1):
         violations = verify_section(content, all_keywords, L)
         if violations is None:
             log.info(L["log_messages"]["log_verify_ok"].format(section=section))
@@ -433,6 +488,10 @@ def generate_section(topic: str, section: str, previous_sections: list[dict], ot
         log.warning(L["log_messages"]["log_verify_fail"].format(
             section=section, violations=violations_str
         ))
+
+        if attempt == MAX_VERIFY_RETRIES:
+            log.error(f"Section '{section}' still violating after {MAX_VERIFY_RETRIES} attempts — using last version anyway.")
+            break  # ou lever une exception selon ta tolérance
 
         regen_prompt = L["prompts"]["section_regenerate"].format(
             **base_prompt_kwargs,
@@ -618,8 +677,8 @@ def create_podcast(
     log.info(msgs["language_selected"])
 
     history = load_history()
-    if history:
-        log.debug(f"📋 Recent topics to avoid: {history}")
+    if history["recent_topics"]:
+        log.debug(f"📋 Recent topics to avoid: {history['recent_topics']}")
 
     if not topic:
         topic = generate_topic(L, history=history)

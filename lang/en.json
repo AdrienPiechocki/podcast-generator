@@ -127,8 +127,9 @@
   "prompts": {
     "system_date": "We are in {date}. ",
     "system_data": "Here is some context for the prompts: \n{context}",
-    "topic_generation": "Seed: {seed}\nImposed angle: {angle}\n\nGenerate ONE podcast episode title in English about: {topic}\n\nABSOLUTE RULES:\n- The title must address the topic ONLY from the imposed angle\n- Factual, precise, grounded in reality\n\nMANDATORY FORMAT:\n[T]Title here[/T]",
-    "topic_choice": "Choose the most original, precise and realistic title for an English podcast.\nAvoid titles that are too generic or too close to 'The evolution of X in 2026'.\nTitles:\n{topics}\n\nRules:\n- Reply with ONLY the chosen title.\n- If none are suitable, reply with exactly: [REGENERATE]",
+    "topic_generation": "Seed: {seed}\nImposed angle: {angle}\n\nGenerate a podcast episode title in English about: {topic}\nMANDATORY FORMAT:\n[T]Title here[/T]\n\nABSOLUTE RULES:\n- The title must address the topic ONLY from the imposed angle\n- Factual, precise, grounded in reality",
+    "topic_choice": "Choose the most original, precise and realistic title for an English podcast.\nAvoid titles that are too generic or too close to 'The evolution of X in 2026'.\nTitles:\n{topics}\n\n{avoid}Rules:\n- Reply with ONLY the chosen title.\n- If none are suitable, reply with exactly: [REGENERATE]",
+    "avoid_topic": "You CANNOT chose a title too similar to this one : {avoid}\n",
     "outline_generation": "Create a plan for a podcast episode in English.\nPrecise topic: {topic}\n\nABSOLUTE RULES:\n- 4 to 6 DISTINCT sections, with no thematic overlap\n- Each section must adopt a DIFFERENT angle: a cause, a consequence, an actor, a tension, a concrete case, a time period, a comparison...\n- FORBIDDEN to have two sections on the same angle (e.g. two economic sections, two technical sections)\n- Each title must contain a verb or express a tension\n- 4 to 8 words per title\n- No markdown, no explanations, only the titles\n\nMANDATORY FORMAT:\n[P]Title[/P]\n[P]Title[/P]",
     "section_generation": "You are a specialist writer.\nOverall podcast topic: {topic}\nSection to write: {section}\n\n{already_covered}\n\nOther podcast sections (DO NOT cover these topics): {other_sections}\n\n{style}\n\nABSOLUTE RULES:\n- 150 to 250 words MAXIMUM.\n- ZERO generalities: get straight to technical details or concrete examples.\n- This section must bring NEW information not yet covered.\n- FORBIDDEN to summarize or rephrase what came before.\n- FORBIDDEN to open with a generic introductory sentence about the overall topic.\nFormat:\n[P]\nText here\n[/P]",
     "intro_generation": "You are a radio journalist.\nWrite the introduction for a podcast about: {topic}\nThe podcast will cover: {outline_str}\n{style}\n\nRules:\n- 50 to 100 words\n- Strong hook from the very first sentence\n- Don't give a name to the podcast\n- Clear outline of the plan without detailing it\n- No staging (music, etc.)\n- End with a complete sentence before [/I]\n\nFormat:\n[I]\nText\n[/I]",
@@ -161,6 +162,24 @@
     "economic or industrial",
     "controversial or debated",
     "practical or concrete (use case, real example)",
-    "prospective or future-oriented"
+    "prospective or future-oriented",
+    "geopolitical or territorial",
+    "legal or regulatory",
+    "ecological or environmental",
+    "philosophical or ethical",
+    "educational or explainer (making it accessible)",
+    "comparative or international",
+    "critical or myth-busting",
+    "biographical or portrait of a key figure",
+    "alternative economy or counter-model",
+    "chronological: decade by decade",
+    "failure or post-mortem (what went wrong and why)",
+    "grassroots or activist",
+    "sensory or experiential (what it actually feels like)",
+    "data-driven: what the numbers reveal",
+    "interdisciplinary (unexpected crossover with another field)",
+    "minorities or underrepresented voices in the field",
+    "hidden infrastructure (what exists but stays invisible)",
+    "north-south divide or global fracture"
   ]
 }
