@@ -113,7 +113,13 @@
   "voice_model": "fr-FR-DeniseNeural",
   "fallback": {
     "topic": "Linux : angle historique",
-    "outline": ["Contexte et origines", "État de l'art", "Enjeux techniques", "Cas d'usage", "Perspectives"],
+    "outline": [
+      "Contexte et origines",
+      "État de l'art",
+      "Enjeux techniques",
+      "Cas d'usage",
+      "Perspectives"
+    ],
     "intro": "Bienvenue dans ce podcast consacré à {topic}.",
     "conclusion": "Voilà qui conclut notre podcast sur {topic}. Merci de nous avoir écoutés.",
     "section_unavailable": "[Contenu indisponible pour la partie : {section}]"
@@ -123,12 +129,14 @@
     "system_data": "Voilà le contexte pour les prompt: \n{context}",
     "topic_generation": "Seed: {seed}\n\nTu dois générer un titre d'articles de podcast en français.\nSujet : {topic}\n\nRègles ABSOLUES :\n- Le titre doit être FACTUEL et ancré dans le sujet donné\n- Focus sur un point précis mais pas de hors-sujet\n\nFormat OBLIGATOIRE (exactement comme ceci) :\n[T]Titre ici[/T]",
     "topic_choice": "Tu dois choisir le titre le plus pertinent et réaliste pour un podcast en français.\nTitres :\n{topics}\n\nRègles :\n- Réponds UNIQUEMENT avec le titre choisi.\n- Si aucun ne convient, réponds UNIQUEMENT : [REGENERATE]",
-    "outline_generation": "Tu dois créer un plan de podcast en français.\nSujet précis : {topic}\n\nRègles ABSOLUES :\n- 4 à 6 parties DISTINCTES, sans chevauchement\n- Chaque partie doit couvrir un aspect DIFFÉRENT du sujet\n- Titres courts (5 mots max)\n- Aucun markdown, aucune explication\n\nFormat OBLIGATOIRE :\n[P]Titre[/P]\n[P]Titre[/P]",
-    "section_generation": "Tu es un rédacteur spécialisé.\nSujet global : {topic}\nPartie à rédiger : {section}\nN'empiète pas sur les autres parties: {other_sections}\n{style}\n\nRègles ABSOLUES :\n- 150 à 250 mots MAXIMUM.\n- ZÉRO généralités : entre directement dans les détails techniques ou les exemples concrets.\nFormat :\n[P]\nTexte ici\n[/P]\n{already_covered}",
-    "resume_section": "Extrais les différents points abordés dans le texte suivant en quelques mots et n'écris rien d'autre: \n\n{text}", 
-    "already_covered_label": "Sujets déjà couverts (NE PAS RÉPÉTER CE CONTENU) :",
+    "outline_generation": "Tu dois créer un plan de podcast en français.\nSujet précis : {topic}\n\nRègles ABSOLUES :\n- 4 à 6 parties DISTINCTES, sans aucun chevauchement thématique\n- Chaque partie doit adopter un ANGLE différent : une cause, une conséquence, un acteur, une tension, un cas concret, une période, une comparaison...\n- INTERDIT d'avoir deux parties sur le même angle (ex : deux parties économiques, deux parties technologiques)\n- Chaque titre doit contenir un verbe ou exprimer une tension\n- 4 à 8 mots par titre\n- Aucun markdown, aucune explication, uniquement les titres\n\nFormat OBLIGATOIRE :\n[P]Titre[/P]\n[P]Titre[/P]",
+    "section_generation": "Tu es un rédacteur spécialisé.\nSujet global : {topic}\nPartie à rédiger : {section}\n\n{already_covered}\n\nAutres parties du podcast (NE PAS aborder ces sujets) : {other_sections}\n\n{style}\n\nRègles ABSOLUES :\n- 150 à 250 mots MAXIMUM.\n- ZÉRO généralités : entre directement dans les détails techniques ou les exemples concrets.\n- Cette partie doit apporter une information NOUVELLE qui n'a pas encore été dite.\n- INTERDIT de résumer ou reformuler ce qui précède.\n- INTERDIT de commencer par une phrase d'introduction générale sur le sujet global.\nFormat :\n[P]\nTexte ici\n[/P]",
+    "resume_section": "Extrais les différents points abordés dans le texte suivant en quelques mots et n'écris rien d'autre: \n\n{text}",
+    "already_covered_label": "CONTENU DÉJÀ TRAITÉ — NE PAS réutiliser, même reformulé :\n\nIdées abordées :\n{ideas}\n\nTermes, œuvres, concepts INTERDITS (ne pas citer ni paraphraser) :\n{keywords}",
     "intro_generation": "Tu es un journaliste radio.\nRédige l'introduction d'un podcast sur : {topic}\nLe podcast abordera : {outline_str}\n{style}\n\nRègles :\n- 50 à 100 mots\n- Accroche forte dès la première phrase\n - Ne donne pas de nom au podcast\n- Annonce claire du plan sans le détailler\n- Pas de mise en scène (musique, etc.)\n- Terminer par une phrase complète avant [/I]\n\nFormat :\n[I]\nTexte\n[/I]",
-    "conclusion_generation": "Tu es un journaliste radio.\nRédige la conclusion d'un podcast sur : {topic}\nPoints abordés : {key_points}\n{style}\n\nRègles :\n- 50 à 100 mots\n- Synthèse rapide + ouverture sur l'avenir\n- Pas de répétition mot pour mot des parties\n- Terminer par une phrase complète avant [/C]\n\nFormat :\n[C]\nTexte\n[/C]"
+    "conclusion_generation": "Tu es un journaliste radio.\nRédige la conclusion d'un podcast sur : {topic}\nVoici un résumé des points déjà couverts (NE PAS répéter, NE PAS reformuler) :\n{key_points}\n{style}\n\nRègles :\n- 50 à 100 mots\n- Ne résume PAS ce qui vient d'être dit : ouvre sur une perspective, une question ouverte ou un enjeu futur\n- Aucune répétition d'exemples ou de noms déjà cités\n- Terminer par une phrase complète avant [/C]\n\nFormat :\n[C]\nTexte\n[/C]",
+    "resume_section_ideas": "Extrais en quelques mots les idées principales abordées dans ce texte. Sois bref, une ligne par idée, sans explication :\n\n{text}",
+    "resume_section_keywords": "Liste UNIQUEMENT les éléments concrets mentionnés dans ce texte : noms d'œuvres, titres, auteurs, concepts techniques, termes spécifiques. Format : un élément par ligne, sans phrase, sans explication :\n\n{text}"
   },
   "log_messages": {
     "language_selected": "Langue sélectionnée : FR",

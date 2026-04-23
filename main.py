@@ -315,11 +315,15 @@ def generate_outline(topic: str, L: dict, system_prompt: str) -> list[str]:
 # ---------------------------
 # ✍️ Section generation
 # ---------------------------
-def generate_section(topic: str, section: str, previous_sections: list[str], other_sections: list[str], L: dict, system_prompt: str) -> str:
+def generate_section(topic: str, section: str, previous_sections: list[dict], other_sections: list[str], L: dict, system_prompt: str) -> str:
     already_covered = ""
     if previous_sections:
-        label = L["prompts"]["already_covered_label"]
-        already_covered = label + "\n\n" + "\n".join(f"{s}" for s in previous_sections)
+        all_ideas = "\n".join(f"- {s['ideas']}" for s in previous_sections if s.get('ideas'))
+        all_keywords = "\n".join(f"- {kw}" for s in previous_sections for kw in s.get('keywords', '').splitlines() if kw.strip())
+        already_covered = L["prompts"]["already_covered_label"].format(
+            ideas=all_ideas,
+            keywords=all_keywords
+        )
 
     prompt = L["prompts"]["section_generation"].format(
         topic=topic,
@@ -352,8 +356,11 @@ def generate_intro(topic: str, outline: list[str], L: dict, system_prompt: str) 
     content = extract_tag(raw, "I")
     return content if content else clean_text(raw)
 
-def generate_conclusion(topic: str, outline: list[str], L: dict, system_prompt: str) -> str:
-    key_points = ", ".join(outline)
+def generate_conclusion(topic: str, processed_sections: list[dict], L: dict, system_prompt: str) -> str:
+    all_ideas = "\n".join(f"- {s['ideas']}" for s in processed_sections if s.get('ideas'))
+    all_keywords = "\n".join(f"- {kw}" for s in processed_sections for kw in s.get('keywords', '').splitlines() if kw.strip())
+    key_points = f"Idées couvertes :\n{all_ideas}\n\nTermes déjà utilisés (ne pas répéter) :\n{all_keywords}"
+
     prompt = L["prompts"]["conclusion_generation"].format(
         topic=topic,
         key_points=key_points,
@@ -402,7 +409,7 @@ def generate_full_content(topic: str, L: dict) -> str:
         processed_sections.append(points)
 
     log.info(msgs["generating_conclusion"])
-    conclusion = generate_conclusion(topic, outline, L, system_prompt)
+    conclusion = generate_conclusion(topic, processed_sections, L, system_prompt)
     sections.append(conclusion)
 
     return "\n\n".join(sections)
@@ -445,10 +452,15 @@ def clean_title(title: str) -> str:
     title = re.sub(r'\s+', ' ', title)
     return title.strip()
 
-def resume_section(text: str, L: dict) -> str:
-    prompt = L["prompts"]["resume_section"].format(text=text)
-    content = call_llm(prompt, temperature=0.2)
-    return clean_text(content)
+def resume_section(text: str, L: dict) -> dict:
+    """Extract ideas and concrete keywords/titles from a section, returned as a dict."""
+    ideas_prompt = L["prompts"]["resume_section_ideas"].format(text=text)
+    keywords_prompt = L["prompts"]["resume_section_keywords"].format(text=text)
+
+    ideas = clean_text(call_llm(ideas_prompt, temperature=0.2) or "")
+    keywords = clean_text(call_llm(keywords_prompt, temperature=0.2) or "")
+
+    return {"ideas": ideas, "keywords": keywords}
 
 # ---------------------------
 # 🔊 Generate TTS

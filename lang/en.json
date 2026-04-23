@@ -43,7 +43,7 @@
     "Planned obsolescence",
     "Software documentation",
     "Data migration",
-    "Dette technique",
+    "Technical Debt",
     "Version control / Versioning",
     "API",
     "Front-end development",
@@ -113,7 +113,13 @@
   "voice_model": "en-US-AvaNeural",
   "fallback": {
     "topic": "Linux: historical angle",
-    "outline": ["Context and Origins", "State of the Art", "Technical Challenges", "Use Cases", "Perspectives"],
+    "outline": [
+      "Context and Origins",
+      "State of the Art",
+      "Technical Challenges",
+      "Use Cases",
+      "Perspectives"
+    ],
     "intro": "Welcome to this podcast about {topic}.",
     "conclusion": "That concludes our podcast about {topic}. Thank you for listening.",
     "section_unavailable": "[Content unavailable for section: {section}]"
@@ -123,12 +129,13 @@
     "system_data": "Here is some context for the prompts: \n{context}",
     "topic_generation": "Seed: {seed}\n\nGenerate 3 titles for a podcast episode in English.\nTopic: {topic}\n\nABSOLUTE RULES:\n- Each title must be FACTUAL and grounded in the given topic\n- Focus on a specific point but no off-topic content\n- One title per line, only between tags\n- No numbering, no markdown, no parentheses\n\nMANDATORY FORMAT (exactly like this):\n[T]Title here[/T]\n[T]Title here[/T]\n[T]Title here[/T]\n[T]Title here[/T]\n[T]Title here[/T]",
     "topic_choice": "You must choose the single most relevant and realistic title for a podcast in English.\nTitles:\n{topics}\n\nRules:\n- Reply with ONLY the chosen title.\n- If none are suitable, reply with exactly: [REGENERATE]",
-    "outline_generation": "Create a plan for a podcast episode in English.\nPrecise topic: {topic}\n\nABSOLUTE RULES:\n- 4 to 6 DISTINCT sections, no overlap\n- Each section must cover a DIFFERENT aspect of the topic\n- Short titles (5 words max)\n- No markdown, no explanations\n\nMANDATORY FORMAT:\n[P]Title[/P]\n[P]Title[/P]",
-    "section_generation": "You are a radio journalist and technology expert.\nOverall podcast topic: {topic}\nSection to write: {section}\n{style}\n\nABSOLUTE RULES:\n- 150 to 250 words MAXIMUM.\n- ZERO generalities: get straight to technical details or concrete examples.\nFormat:\n[P]\nText content here\n[/P]\n{already_covered}",
-    "resume_section": "Extract the different points given in the following text in a few words and don't write anything else: \n\n{text}",
-    "already_covered_label": "Topics already covered (DO NOT REPEAT THIS CONTENT):",
+    "outline_generation": "Create a plan for a podcast episode in English.\nPrecise topic: {topic}\n\nABSOLUTE RULES:\n- 4 to 6 DISTINCT sections, with no thematic overlap\n- Each section must adopt a DIFFERENT angle: a cause, a consequence, an actor, a tension, a concrete case, a time period, a comparison...\n- FORBIDDEN to have two sections on the same angle (e.g. two economic sections, two technical sections)\n- Each title must contain a verb or express a tension\n- 4 to 8 words per title\n- No markdown, no explanations, only the titles\n\nMANDATORY FORMAT:\n[P]Title[/P]\n[P]Title[/P]",
+    "section_generation": "You are a specialist writer.\nOverall podcast topic: {topic}\nSection to write: {section}\n\n{already_covered}\n\nOther podcast sections (DO NOT cover these topics): {other_sections}\n\n{style}\n\nABSOLUTE RULES:\n- 150 to 250 words MAXIMUM.\n- ZERO generalities: get straight to technical details or concrete examples.\n- This section must bring NEW information not yet covered.\n- FORBIDDEN to summarize or rephrase what came before.\n- FORBIDDEN to open with a generic introductory sentence about the overall topic.\nFormat:\n[P]\nText here\n[/P]",
     "intro_generation": "You are a radio journalist.\nWrite the introduction for a podcast about: {topic}\nThe podcast will cover: {outline_str}\n{style}\n\nRules:\n- 50 to 100 words\n- Strong hook from the very first sentence\n- Don't give a name to the podcast\n- Clear outline of the plan without detailing it\n- No staging (music, etc.)\n- End with a complete sentence before [/I]\n\nFormat:\n[I]\nText\n[/I]",
-    "conclusion_generation": "You are a radio journalist.\nWrite the conclusion for a podcast about: {topic}\nPoints covered: {key_points}\n{style}\n\nRules:\n- 50 to 100 words\n- Quick summary + opening toward the future\n- No word-for-word repetition of sections\n- End with a complete sentence before [/C]\n\nFormat:\n[C]\nText\n[/C]"
+    "conclusion_generation": "You are a radio journalist.\nWrite the conclusion for a podcast about: {topic}\nHere is a summary of points already covered (DO NOT repeat or rephrase):\n{key_points}\n{style}\n\nRules:\n- 50 to 100 words\n- Do NOT summarize what was just said: open onto a perspective, an open question, or a future challenge\n- No repetition of examples or names already cited\n- End with a complete sentence before [/C]\n\nFormat:\n[C]\nText\n[/C]",
+    "resume_section_ideas": "Extract the main ideas covered in this text in a few words.\nBe brief, one line per idea, no explanation:\n\n{text}",
+    "resume_section_keywords": "List ONLY the concrete elements mentioned in this text:\ntitles, authors, technical concepts, specific terms.\nFormat: one item per line, no sentence, no explanation:\n\n{text}",
+    "already_covered_label": "CONTENT ALREADY COVERED — DO NOT reuse, even rephrased:\n\nIdeas covered:\n{ideas}\n\nFORBIDDEN terms, works, concepts (do not cite or paraphrase):\n{keywords}"
   },
   "log_messages": {
     "language_selected": "Language selected: EN",
